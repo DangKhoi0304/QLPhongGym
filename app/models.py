@@ -1,6 +1,4 @@
 from datetime import date
-from email.policy import default
-
 from app import db, app
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, BOOLEAN, Date, Enum, UniqueConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -17,7 +15,7 @@ class UserRole(RoleEnum):
 
 
 class User(db.Model, UserMixin):
-    __tablename__ = 'users'  # Tạo bảng User trong DB
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     hoTen = Column(String(50), nullable=False)
@@ -35,10 +33,17 @@ class User(db.Model, UserMixin):
     def get_id(self):
         return str(self.id)
 
-    def get_taiKhoan(self):
-        return self.taiKhoan
+    # thêm method get_username và property username để template dùng thoải mái
+    def get_username(self):
+        # trả tên hiển thị (bạn có thể đổi thành self.taiKhoan nếu muốn)
+        return self.hoTen
+
+    @property
+    def username(self):
+        return self.get_username()
 
     def set_password(self, password):
+        # dùng werkzeug để hash an toàn
         self.matKhau = generate_password_hash(password)
 
     def check_password(self, password):
@@ -46,9 +51,9 @@ class User(db.Model, UserMixin):
 
 
 class NhanVien(User):
-    __tablename__ = 'nhanvien'  # Tạo bảng NhanVien trong DB, không tạo bảng User
+    __tablename__ = 'nhanvien'
 
-    id = Column(Integer, ForeignKey('users.id'), primary_key=True)  # Khóa ngoại trỏ tới bảng users
+    id = Column(Integer, ForeignKey('users.id'), primary_key=True)
     vaiTro = Column(Enum(UserRole))
 
     def get_VaiTro(self):
@@ -59,15 +64,20 @@ if __name__== '__main__':
     with app.app_context():
         db.create_all()
 
-        u = NhanVien(hoTen="Nguyễn Đăng Khôi", gioiTinh=True, ngaySinh=date(2004, 2, 21),
-                     diaChi="Thành phố Hồ Chí Minh",SDT="0762464676",eMail="khoi123@gmail.com",
-                     taiKhoan='admin', matKhau=str(hashlib.md5('123456'.encode('utf-8')).hexdigest()),
-                     vaiTro=UserRole.NGUOIQUANTRI)
+        # Tạo user test - dùng set_password để hash an toàn
+        u = NhanVien(
+            hoTen="Nguyễn Đăng Khôi",
+            gioiTinh=True,
+            ngaySinh=date(2004, 2, 21),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0762464676",
+            eMail="khoi123@gmail.com",
+            taiKhoan='admin',
+            vaiTro=UserRole.NGUOIQUANTRI
+        )
+        u.set_password('123456')
         db.session.add(u)
-        # db.session.commit()
 
-
-        # Tạo nhân viên
         nv = NhanVien(
             hoTen="Trần Quốc Phong",
             gioiTinh=True,
@@ -77,7 +87,7 @@ if __name__== '__main__':
             eMail="toquocphong123@gmail.com",
             vaiTro=UserRole.THUNGAN,
             taiKhoan="quocphong",
-            matKhau=str(hashlib.md5('123456'.encode('utf-8')).hexdigest())
         )
+        nv.set_password('123456')
         db.session.add(nv)
         db.session.commit()

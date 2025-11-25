@@ -3,6 +3,7 @@ from random import choice
 from flask import render_template, request, redirect, session, flash, url_for
 from sqlalchemy import and_, Null
 from app import app, db, dao, login
+from app.forms import ChangeInfoForm
 from datetime import date, datetime
 
 # from app.dao import get_class_by_id
@@ -76,6 +77,23 @@ def kiem_tra_tuoi(taikhoan):
             return redirect(f'/nhan-vien/{taikhoan}')
     return "Không nhận được thông tin ngày sinh!"
 
+@app.route('/thay-doi-thong-tin', methods=['GET','POST'], endpoint='change_info')
+@login_required
+def change_info():
+    form = ChangeInfoForm(obj=current_user)
+    if form.validate_on_submit():
+        current_user.hoTen = form.ho_va_ten.data
+        current_user.eMail = form.email.data
+        current_user.SDT = form.so_dien_thoai.data
+        current_user.taiKhoan = form.tai_khoan.data
+        if hasattr(current_user, 'cccd') and hasattr(form, 'cccd'):
+            current_user.cccd = form.cccd.data
+
+        db.session.commit()
+        flash("Cập nhật thông tin thành công.", "success")
+        return redirect(url_for('change_info'))
+
+    return render_template('thaydoithongtin.html', form=form)
 
 if __name__ == '__main__':
     from app import admin
