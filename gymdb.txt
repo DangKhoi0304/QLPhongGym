@@ -1,0 +1,94 @@
+USE gymdb;
+
+CREATE TABLE HoiVien (
+    maHoiVien INT PRIMARY KEY AUTO_INCREMENT,
+    hoTen VARCHAR(255),
+    email VARCHAR(255),
+    NgayDangKy DATETIME,
+    ngaySinh DATE,
+    gioiTinh VARCHAR(10),
+    soDienThoai VARCHAR(20)
+);
+
+CREATE TABLE GoiTap (
+    maGoiTap INT PRIMARY KEY AUTO_INCREMENT,
+    tenGoiTap VARCHAR(255),
+    thoiHan DATE,
+    giaTienGoi DECIMAL(10,2)
+);
+
+CREATE TABLE users (
+  id int NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  hoTen varchar(50) NOT NULL,
+  gioiTinh tinyint(1) NOT NULL,
+  ngaySinh date NOT NULL,
+  diaChi varchar(255) NOT NULL,
+  SDT varchar(20) NOT NULL,
+  eMail varchar(255) NOT NULL,
+  taiKhoan varchar(50) NOT NULL,
+  matKhau varchar(255) NOT NULL
+);
+
+CREATE TABLE nhanvien (
+  id int NOT NULL PRIMARY KEY,
+  vaiTro enum('NGUOIQUANTRI','THUNGAN', 'LETAN') NOT NULL,
+  FOREIGN KEY (id) REFERENCES users (id)
+);
+
+CREATE TABLE DangKyGoiTap (
+    maDangKy INT PRIMARY KEY AUTO_INCREMENT,
+    ngayDangKy DATE,
+    ngayKetThuc DATE,
+    goiTap_id INT,
+    hoiVien_id INT,
+    trangThai BOOLEAN,
+    FOREIGN KEY (goiTap_id) REFERENCES GoiTap(maGoiTap),
+    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
+);
+
+CREATE TABLE ThanhToan (
+    maThanhToan INT PRIMARY KEY AUTO_INCREMENT,
+    soTienTT DECIMAL(10,2),
+    ngayThanhToan DATETIME,
+    phuongThuc VARCHAR(100),
+    hoiVien_id INT,
+    dangKyGoiTap_id INT,
+    nhanVien_id INT,
+    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien),
+    FOREIGN KEY (dangKyGoiTap_id) REFERENCES DangKyGoiTap(maDangKy),
+    FOREIGN KEY (nhanVien_id) REFERENCES nhanvien(id)
+);
+
+CREATE TABLE HuanLuyenVien (
+    maHLV INT PRIMARY KEY AUTO_INCREMENT,
+    hoTen VARCHAR(255),
+    SDT VARCHAR(20)
+);
+
+CREATE TABLE PhanCongHLV (
+    maPhanCongHLV INT PRIMARY KEY AUTO_INCREMENT,
+    HLV_id INT,
+    hoiVien_id INT,
+    ngayBatDau DATE,
+    FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(maHLV),
+    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
+);
+
+CREATE TABLE BaiTap (
+    maBaiTap INT PRIMARY KEY AUTO_INCREMENT,
+    tenBaiTap VARCHAR(255),
+    moTaBaiTap TEXT
+);
+
+CREATE TABLE LichTap (
+    maLichTap INT PRIMARY KEY AUTO_INCREMENT,
+    baiTap_id INT,
+    soHiep INT,
+    soLanHiep INT,
+    ngayTap VARCHAR(50), -- lưu dạng chuỗi như 'Thứ 2, 4, 6'
+    HLV_id INT,
+    hoiVien_id INT,
+    FOREIGN KEY (baiTap_id) REFERENCES BaiTap(maBaiTap),
+    FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(maHLV),
+    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
+);

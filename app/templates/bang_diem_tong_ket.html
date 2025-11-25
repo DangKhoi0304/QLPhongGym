@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điểm Tổng Kết</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #1c2b4a;
+            color: white;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #1c2b4a;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        button:hover {
+            background-color: #45a049;
+            transform: scale(1.05);
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 8px 20px;
+            background-color: transparent;
+            color: #1c2b4a;
+            font-size: 16px;
+            font-weight: bold;
+            border: 2px solid #1c2b4a;
+            border-radius: 5px;
+            text-decoration: none;
+            transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
+        }
+
+        .back-button:hover {
+            background-color: #1c2b4a;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .flash-message {
+            margin: 20px 0;
+            color: red;
+            font-weight: bold;
+        }
+
+        .info-section {
+            margin-top: 20px;
+        }
+
+        .info-section p {
+            font-size: 16px;
+            margin: 5px 0;
+        }
+
+        /* Ẩn phần tử khi in */
+        @media print {
+            .back-button,
+            button {
+                display: none;
+            }
+
+            body {
+                background-color: white; /* Nền trắng để in ra */
+                color: black; /* Chữ màu đen */
+            }
+
+            table th {
+                background-color: transparent !important; /* Loại bỏ màu nền */
+                color: black !important; /* Đảm bảo tiêu đề bảng có màu đen */
+                -webkit-print-color-adjust: exact; /* Đảm bảo màu sắc hiển thị đúng */
+            }
+
+            table td {
+                color: black !important; /* Đảm bảo chữ trong các ô dữ liệu là màu đen */
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="/giao-vien/{{taikhoan}}/lop-chu-nhiem" class="back-button">Quay lại</a>
+    <h1>Bảng Điểm Tổng Kết</h1>
+
+    <!-- Thêm phần hiển thị thông báo -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-message">
+            {% for category, message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% endwith %}
+
+    <!-- Thông tin lớp và giáo viên chủ nhiệm -->
+    <div class="info-section">
+        <p><strong>Lớp:</strong> {{ lop.tenLop }}</p>
+        <p><strong>Giáo viên chủ nhiệm:</strong> {{ lop.giaoVienChuNhiem.hoTen }}</p>
+    </div>
+
+    <button onclick="window.print()">Xuất Bảng Điểm</button>
+    <table>
+        <thead>
+            <tr>
+                <th>STT</th>
+                <th>Họ Tên</th>
+                <th>Lớp</th>
+                <th>Điểm TB HK1</th>
+                <th>Điểm TB HK2</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for idx, diem in enumerate(bang_diem_tong_ket) %}
+            <tr>
+                <td>{{ idx + 1 }}</td>
+                <td>{{ diem.ho_ten }}</td>
+                <td>{{ diem.lop }}</td>
+                <td>{{ diem.diem_tb_hk1 or " " }}</td>
+                <td>{{ diem.diem_tb_hk2 or " " }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
