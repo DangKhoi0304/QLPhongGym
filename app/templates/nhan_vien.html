@@ -5,7 +5,7 @@
 {% block head %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-  /* Page background */
+  /* (giữ style bạn có) */
   body.staff-page {
     background-image: url('https://res.cloudinary.com/dnbno2tkc/image/upload/v1735073428/index_kbcyiw.png');
     background-size: cover;
@@ -16,93 +16,59 @@
     color: #fff;
     margin: 0;
   }
-
-  header.staff-header {
-    position: relative;
+  .container-card {
+    max-width: 960px;
+    margin: 2rem auto;
+  }
+  .card-main {
+    background: rgba(255,255,255,0.95);
+    color: #222;
+    border-radius: 12px;
     padding: 1.25rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
   }
-
-  .staff-title {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 1px 1px 6px rgba(0,0,0,0.45);
-  }
-
-  .btn-logout {
-    background-color: rgba(231,76,60,0.95);
+  .btn-primary-custom {
+    background: linear-gradient(90deg,#3A6EA5,#00B4D8);
     color: #fff;
     border: none;
-    padding: .5rem .9rem;
-    border-radius: .5rem;
-    text-decoration: none;
-  }
-  .btn-logout:hover { transform: scale(1.03); }
-
-  main.staff-main {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 2rem 1rem;
-  }
-
-  .controls {
-    width: 100%;
-    max-width: 420px;
-    display: flex;
-    flex-direction: column;
-    gap: 0.9rem;
-    margin-top: 0.5rem;
-  }
-
-  .controls .btn, .controls a.btn {
-    padding: 0.9rem 1rem;
-    font-size: 1.05rem;
-    border-radius: .65rem;
-    background: rgba(58,110,165,0.95);
-    color: #fff;
-    box-shadow: 0 6px 14px rgba(0,0,0,0.18);
-    border: none;
-    text-align: center;
-    text-decoration: none;
-  }
-  .controls .btn:hover, .controls a.btn:hover {
-    transform: translateY(-3px);
-    background: rgba(37,73,110,0.95);
-  }
-
-  /* Popup flash in top center */
-  .popup {
-    position: fixed;
-    left: 50%;
-    top: 12%;
-    transform: translateX(-50%);
-    z-index: 1080;
-    min-width: 260px;
-    max-width: 90%;
-    border-radius: 8px;
-    padding: 0.7rem 1rem;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.25);
-    background: #fff;
-    color: #111;
-  }
-
-  @media (max-width: 576px) {
-    .staff-title { font-size: 1.25rem; }
-    .controls { max-width: 340px; }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <body class="staff-page">
-  <header class="staff-header container-fluid">
-    <div class="staff-title">Chào mừng {{ current_user.hoTen if current_user and current_user.hoTen else 'Nhân viên' }}</div>
-  </header>
+  <div class="container container-card">
+    <div class="card card-main">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="m-0">Chào mừng {{ current_user.hoTen }}</h3>
+        <a href="{{ url_for('logout_process') }}" class="btn btn-sm btn-outline-danger">Đăng xuất</a>
+      </div>
 
+      <!-- Nút chức năng -->
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <a href="{{ url_for('register') }}" class="btn btn-lg w-100 btn-primary-custom">Đăng ký Hội viên</a>
+          <small class="text-muted d-block mt-1">Dùng để mở form đăng ký hội viên (online)</small>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <!-- nút đăng ký HLV luôn hiện -->
+          <a href="{{ url_for('staff_dangky_hlv') }}" class="btn btn-lg w-100 btn-warning">Đăng ký Huấn luyện viên</a>
+          <small class="text-muted d-block mt-1">Tạo tài khoản HLV và lưu vào bảng huanluyenvien</small>
+        </div>
+      </div>
+
+      <!-- Thông báo flash -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="mt-3">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

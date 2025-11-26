@@ -1,0 +1,22 @@
+{% extends 'layoutNhanVien/base.html' %}
+{% block title %}Đăng ký HLV{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Đăng ký Huấn Luyện Viên</h3>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="mb-2">{{ form.hoTen.label }} {{ form.hoTen(class="form-control") }}</div>
+    <div class="mb-2">{{ form.gioiTinh.label }} {{ form.gioiTinh(class="form-select") }}</div>
+    <div class="mb-2">{{ form.ngaySinh.label }} {{ form.ngaySinh(class="form-control") }}</div>
+    <div class="mb-2">{{ form.diaChi.label }} {{ form.diaChi(class="form-control") }}</div>
+    <div class="mb-2">{{ form.SDT.label }} {{ form.SDT(class="form-control") }}</div>
+    <div class="mb-2">{{ form.eMail.label }} {{ form.eMail(class="form-control") }}</div>
+    <div class="mb-2">{{ form.taiKhoan.label }} {{ form.taiKhoan(class="form-control") }}</div>
+    <div class="mb-2">{{ form.matKhau.label }} {{ form.matKhau(class="form-control") }}</div>
+    <div class="mb-2">{{ form.matKhau2.label }} {{ form.matKhau2(class="form-control") }}</div>
+
+    <button type="submit" class="btn btn-primary mt-2">Tạo HLV</button>
+    <a href="{{ url_for('thong_tin_nhan_vien', taikhoan=current_user.taiKhoan) }}" class="btn btn-secondary mt-2">Hủy</a>
+  </form>
+</div>
+{% endblock %}

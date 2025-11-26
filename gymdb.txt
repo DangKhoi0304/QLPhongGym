@@ -60,9 +60,11 @@ CREATE TABLE ThanhToan (
 );
 
 CREATE TABLE HuanLuyenVien (
-    maHLV INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY NOT NULL,
     hoTen VARCHAR(255),
-    SDT VARCHAR(20)
+    SDT VARCHAR(20),
+    eMail VARCHAR(255),
+    FOREIGN KEY (id) REFERENCES users(id)
 );
 
 CREATE TABLE PhanCongHLV (
@@ -70,7 +72,7 @@ CREATE TABLE PhanCongHLV (
     HLV_id INT,
     hoiVien_id INT,
     ngayBatDau DATE,
-    FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(maHLV),
+    FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(id),
     FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
 );
 
@@ -89,6 +91,6 @@ CREATE TABLE LichTap (
     HLV_id INT,
     hoiVien_id INT,
     FOREIGN KEY (baiTap_id) REFERENCES BaiTap(maBaiTap),
-    FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(maHLV),
+    FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(id),
     FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
 );
