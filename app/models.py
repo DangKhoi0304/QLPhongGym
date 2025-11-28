@@ -26,6 +26,7 @@ class User(db.Model, UserMixin):
     eMail = Column(String(255), unique=True, nullable=False)
     taiKhoan = Column(String(50), unique=True, nullable=False)
     matKhau = Column(String(255), nullable=False)
+    goiTap = Column(Integer, nullable=True)
 
     def __str__(self):
         return self.hoTen
@@ -71,45 +72,45 @@ if __name__== '__main__':
     with app.app_context():
         db.create_all()
 
-        # # Tạo user test - dùng set_password để hash an toàn
-        # u = NhanVien(
-        #     hoTen="Nguyễn Đăng Khôi",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 2, 21),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0762464676",
-        #     eMail="khoi123@gmail.com",
-        #     taiKhoan='admin',
-        #     vaiTro=UserRole.NGUOIQUANTRI
-        # )
-        # u.set_password('123456')
-        # db.session.add(u)
-        #
-        # nv = NhanVien(
-        #     hoTen="Trần Quốc Phong",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 11, 24),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0799773010",
-        #     eMail="toquocphong123@gmail.com",
-        #     vaiTro=UserRole.THUNGAN,
-        #     taiKhoan="quocphong",
-        # )
-        # nv.set_password('123456')
-        # db.session.add(nv)
-        # db.session.commit()
-        #
-        # nv = NhanVien(
-        #     hoTen="Tô Quốc Bình",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 11, 24),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0733546410",
-        #     eMail="toquocbinh123@gmail.com",
-        #     vaiTro=UserRole.LETAN,
-        #     taiKhoan="binh",
-        # )
-        # nv.set_password('123456')
-        # db.session.add(nv)
-        # db.session.commit()
-        #
+        # Tạo user test - dùng set_password để hash an toàn
+        u = NhanVien(
+            hoTen="Nguyễn Đăng Khôi",
+            gioiTinh=True,
+            ngaySinh=date(2004, 2, 21),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0762464676",
+            eMail="khoi123@gmail.com",
+            taiKhoan='admin',
+            vaiTro=UserRole.NGUOIQUANTRI
+        )
+        u.set_password('123456')
+        db.session.add(u)
+
+        nv = NhanVien(
+            hoTen="Trần Quốc Phong",
+            gioiTinh=True,
+            ngaySinh=date(2004, 11, 24),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0799773010",
+            eMail="toquocphong123@gmail.com",
+            vaiTro=UserRole.THUNGAN,
+            taiKhoan="quocphong",
+        )
+        nv.set_password('123456')
+        db.session.add(nv)
+        db.session.commit()
+
+        nv = NhanVien(
+            hoTen="Tô Quốc Bình",
+            gioiTinh=True,
+            ngaySinh=date(2004, 11, 24),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0733546410",
+            eMail="toquocbinh123@gmail.com",
+            vaiTro=UserRole.LETAN,
+            taiKhoan="binh",
+        )
+        nv.set_password('123456')
+        db.session.add(nv)
+        db.session.commit()
+

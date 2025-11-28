@@ -32,6 +32,39 @@ class RegisterForm(FlaskForm):
     matKhau2 = PasswordField('Xác nhận mật khẩu', validators=[DataRequired(), EqualTo('matKhau', message='Mật khẩu không khớp')])
     submit = SubmitField('Đăng ký')
 
+class RegisterFormStaff(FlaskForm):
+    hoTen = StringField('Họ và tên', validators=[DataRequired(), Length(min=2, max=200)])
+    gioiTinh = SelectField('Giới tính', choices=[('1','Nam'),('0','Nữ')], validators=[Optional()])
+    ngaySinh = DateField('Ngày sinh', format='%Y-%m-%d', validators=[Optional()])
+    diaChi = StringField('Địa chỉ', validators=[Optional(), Length(max=255)])
+    SDT = StringField('Số điện thoại', validators=[Optional(), Length(max=20)])
+    eMail = StringField('Email', validators=[Optional(), Email(), Length(max=255)])
+    taiKhoan = StringField('Tài khoản', validators=[DataRequired(), Length(min=3, max=50)])
+    goiTap = SelectField(
+        'Gói tập',
+        choices=[('1','1 tháng'),('3','3 tháng'),('6','6 tháng'),('12','12 tháng')],
+        validators=[DataRequired()]
+    )
+    submit = SubmitField('Đăng ký')
+
+
+class RegisterFormStaff(FlaskForm):
+    hoTen = StringField('Họ và tên', validators=[DataRequired(), Length(min=2, max=200)])
+    gioiTinh = SelectField('Giới tính', choices=[('1','Nam'),('0','Nữ')], validators=[Optional()])
+    ngaySinh = DateField('Ngày sinh', format='%Y-%m-%d', validators=[Optional()])
+    diaChi = StringField('Địa chỉ', validators=[Optional(), Length(max=255)])
+    SDT = StringField('Số điện thoại', validators=[Optional(), Length(max=20)])
+    eMail = StringField('Email', validators=[Optional(), Email(), Length(max=255)])
+    taiKhoan = StringField('Tài khoản', validators=[DataRequired(), Length(min=3, max=50)])
+    goiTap = SelectField(
+        'Gói tập',
+        choices=[('1','1 tháng'),('3','3 tháng'),('6','6 tháng'),('12','12 tháng')],
+        validators=[DataRequired()]
+    )
+    submit = SubmitField('Đăng ký')
+
+
+
 class StaffRegisterForm(RegisterForm):
     # kế thừa các trường trên, thêm chọn role
     role = SelectField('Vai trò', choices=[

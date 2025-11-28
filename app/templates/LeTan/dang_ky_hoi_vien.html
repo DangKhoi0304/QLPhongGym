@@ -1,0 +1,74 @@
+{% extends 'layoutNhanVien/base.html' %}
+
+{% block title %}Đăng Ký{% endblock %}
+
+{% block content %}
+<div class="vh-100 d-flex justify-content-center align-items-center"
+     style="background: linear-gradient(to right, #4facfe, #00f2fe);">
+    <div class="card shadow-lg p-4"
+         style="width: 100%; max-width: 600px; border-radius: 12px; background: rgba(255,255,255,0.95);">
+        <h2 class="text-center text-primary fw-bold mb-3">Đăng Ký Hội Viên</h2>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="">
+            {{ form.hidden_tag() }}
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.hoTen.label(class="form-label") }}
+                    {{ form.hoTen(class="form-control") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.gioiTinh.label(class="form-label") }}
+                    {{ form.gioiTinh(class="form-select") }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.ngaySinh.label(class="form-label") }}
+                    {{ form.ngaySinh(class="form-control", type="date") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.diaChi.label(class="form-label") }}
+                    {{ form.diaChi(class="form-control") }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.SDT.label(class="form-label") }}
+                    {{ form.SDT(class="form-control") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.eMail.label(class="form-label") }}
+                    {{ form.eMail(class="form-control") }}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.taiKhoan.label(class="form-label") }}
+                    {{ form.taiKhoan(class="form-control") }}
+                </div>
+
+                <!-- hiển thị gói tập -->
+                <div class="col-md-6 mb-3">
+                    {{ form.goiTap.label(class="form-label") }}
+                    {{ form.goiTap(class="form-select") }}
+                </div>
+            </div>
+
+
+            <button type="submit" class="btn btn-primary btn-lg w-100">{{ form.submit.label.text }}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

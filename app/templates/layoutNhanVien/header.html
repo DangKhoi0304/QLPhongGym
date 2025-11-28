@@ -1,7 +1,23 @@
 <!-- header.html -->
+<style>
+    nav, .navbar {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+        border-bottom: none !important;
+    }
+
+    /* Chữ trên menu chuyển sang màu trắng */
+    nav a, .navbar a, .navbar-brand, .nav-link {
+        color: #ffffff !important;
+        opacity: 0.9;
+    }
+    nav a:hover, .navbar a:hover {
+        opacity: 1;
+    }
+</style>
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/banve">OUR AIRLINE</a>
+        <a class="navbar-brand" href="/nhan-vien/<taikhoan>">GYM</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -9,10 +25,8 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto">
 
-                <li class="nav-item"><a class="nav-link" href="/banve" data-title="Trang Chủ">Trang Chủ</a></li>
-                <li class="nav-item"><a class="nav-link" href="/banve/tim-chuyen-bay" data-title="Tìm Chuyến Bay">Tìm Chuyến Bay</a></li>
-
-                <li class="nav-item"><a class="nav-link" href="/tra-cuu-chuyen-bay" data-title="Tra Cứu Chuyến Bay">Tra Cứu Chuyến Bay</a></li>
+                <li class="nav-item"><a class="nav-link" href="/nhan-vien/<taikhoan>" data-title="Trang Chủ">Trang Chủ</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dangky/nhanvien" data-title="Đăng Ký Hội Viên">Đăng ký hội viên</a></li>
 
                 {% if current_user.is_authenticated %}
 

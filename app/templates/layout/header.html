@@ -1,7 +1,7 @@
 <!-- header.html -->
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">OUR AIRLINE</a>
+        <a class="navbar-brand" href="/">GYM</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -11,7 +11,7 @@
                 {% if current_user.is_authenticated %}
                     <!-- Hiển thị tên người dùng sau khi đăng nhập -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/hoso" data-title="Hồ Sơ">Chào, {{ current_user.get_username() }}</a>
+                        <a class="nav-link" href="/hoi-vien/<taikhoan>" data-title="Hồ Sơ">Chào, {{ current_user.get_username() }}</a>
                     </li>
                      {% if current_user.is_khach_hang %}
                         <li class="nav-item">
@@ -21,7 +21,7 @@
                 {% endif %}
 
                 <li class="nav-item"><a class="nav-link" href="/" data-title="Trang Chủ">Trang Chủ</a></li>
-                <li class="nav-item"><a class="nav-link" href="/tim-chuyen-bay" data-title="Tìm Chuyến Bay">Tìm Chuyến Bay</a></li>
+
 
                 {% if current_user.is_authenticated %}
                      <li class="nav-item">

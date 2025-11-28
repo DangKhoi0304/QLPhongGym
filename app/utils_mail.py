@@ -7,10 +7,10 @@ def send_mail_gmail(to_email, subject, plain_text, html_text=None):
     SMTP_PORT = 587
 
     # Email gửi đi
-    SMTP_USER = "asamikiri2004@gmail.com"
+    SMTP_USER = "nxk02032004@gmail.com"
 
     # App Password 16 ký tự từ Google (không phải mật khẩu Gmail)
-    SMTP_PASS = "hqpd gtxq fjvq uhzh"
+    SMTP_PASS = "tpnw zvbi yggw scwa"
 
     # Tạo nội dung mail
     msg = MIMEMultipart("alternative")

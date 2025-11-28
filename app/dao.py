@@ -45,7 +45,7 @@ def get_user_by_phone(phone):
         return None
     return _find_any(User, SDT=phone) or _find_any(NhanVien, SDT=phone)
 
-def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau):
+def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, goiTap=None):
     """Tạo User mới, hash MD5, tránh unique-collision cho email/phone rỗng."""
     if get_user_by_username(taiKhoan) or (email and get_user_by_email(email)) or (sdt and get_user_by_phone(sdt)):
         return None
@@ -63,16 +63,19 @@ def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau
         SDT=sdt,
         eMail=email,
         taiKhoan=taiKhoan.strip(),
-        matKhau=_md5(matKhau)
+        matKhau=_md5(matKhau),
+        goiTap=int(goiTap) if goiTap is not None else None
     )
 
     try:
         db.session.add(user)
         db.session.commit()
         return user
-    except Exception:
+    except Exception as ex:
         db.session.rollback()
+        app.logger.exception("create_user error: %s", ex)
         return None
+
 
 def promote_to_nhanvien(user, role_str):
     """
@@ -126,3 +129,4 @@ def create_huanluyenvien_from_user(user):
         db.session.rollback()
         app.logger.exception("create_huanluyenvien_from_user error")
         return False
+
