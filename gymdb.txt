@@ -1,14 +1,5 @@
 USE gymdb;
 
-CREATE TABLE HoiVien (
-    maHoiVien INT PRIMARY KEY AUTO_INCREMENT,
-    hoTen VARCHAR(255),
-    email VARCHAR(255),
-    NgayDangKy DATETIME,
-    ngaySinh DATE,
-    gioiTinh VARCHAR(10),
-    soDienThoai VARCHAR(20)
-);
 
 CREATE TABLE GoiTap (
     maGoiTap INT PRIMARY KEY AUTO_INCREMENT,
@@ -25,8 +16,10 @@ CREATE TABLE users (
   diaChi varchar(255) NOT NULL,
   SDT varchar(20) NOT NULL,
   eMail varchar(255) NOT NULL,
+  NgayDangKy DATETIME,
   taiKhoan varchar(50) NOT NULL,
-  matKhau varchar(255) NOT NULL
+  matKhau varchar(255) NOT NULL,
+  avatar varchar(255)
 );
 
 CREATE TABLE nhanvien (
@@ -43,7 +36,7 @@ CREATE TABLE DangKyGoiTap (
     hoiVien_id INT,
     trangThai BOOLEAN,
     FOREIGN KEY (goiTap_id) REFERENCES GoiTap(maGoiTap),
-    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
+    FOREIGN KEY (hoiVien_id) REFERENCES users(id)
 );
 
 CREATE TABLE ThanhToan (
@@ -54,7 +47,7 @@ CREATE TABLE ThanhToan (
     hoiVien_id INT,
     dangKyGoiTap_id INT,
     nhanVien_id INT,
-    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien),
+    FOREIGN KEY (hoiVien_id) REFERENCES users(id),
     FOREIGN KEY (dangKyGoiTap_id) REFERENCES DangKyGoiTap(maDangKy),
     FOREIGN KEY (nhanVien_id) REFERENCES nhanvien(id)
 );
@@ -73,7 +66,7 @@ CREATE TABLE PhanCongHLV (
     hoiVien_id INT,
     ngayBatDau DATE,
     FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(id),
-    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
+    FOREIGN KEY (hoiVien_id) REFERENCES users(id)
 );
 
 CREATE TABLE BaiTap (
@@ -92,5 +85,5 @@ CREATE TABLE LichTap (
     hoiVien_id INT,
     FOREIGN KEY (baiTap_id) REFERENCES BaiTap(maBaiTap),
     FOREIGN KEY (HLV_id) REFERENCES HuanLuyenVien(id),
-    FOREIGN KEY (hoiVien_id) REFERENCES HoiVien(maHoiVien)
+    FOREIGN KEY (hoiVien_id) REFERENCES users(id)
 );

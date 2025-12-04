@@ -13,11 +13,12 @@ class ChangePasswordForm(FlaskForm):
     submit = SubmitField('Đổi Mật Khẩu')
 
 class ChangeInfoForm(FlaskForm):
-    ho_va_ten = StringField('Họ và tên', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    so_dien_thoai = StringField('Số điện thoại', validators=[DataRequired()])
-    tai_khoan = StringField('Tài khoản', validators=[DataRequired()])
-    cccd = StringField('CCCD', validators=[DataRequired()])
+    hoTen = StringField('Họ và tên', validators=[DataRequired(), Length(max=50)])
+    gioiTinh = SelectField('Giới tính', choices=[('1', 'Nam'), ('0', 'Nữ')], validators=[Optional()])
+    ngaySinh = DateField('Ngày sinh', format='%Y-%m-%d', validators=[Optional()])
+    SDT = StringField('Số điện thoại', validators=[DataRequired(), Length(max=20)])
+    diaChi = StringField('Địa chỉ', validators=[Optional(), Length(max=255)])
+
     submit = SubmitField('Cập nhật thông tin')
 
 class RegisterForm(FlaskForm):

@@ -1,14 +1,16 @@
 from random import choice
 
-from flask import render_template, request, redirect, session, flash, url_for
+from flask import render_template, request, redirect, session, flash, url_for, jsonify
 from app import app, db, dao, login
 
 from app.models import UserRole, NhanVien
 from flask_login import login_user, logout_user, current_user, login_required
 
-from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff
+from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm
 from app.utils_mail import send_mail_gmail
 
+import cloudinary
+import cloudinary.uploader
 app.secret_key = 'secret_key'  # Khóa bảo mật cho session
 
 DEFAULT_PASSWORD = "123456"
@@ -52,7 +54,9 @@ def login_process():
                 return redirect(f'/nhan-vien/{taiKhoan}')
 
         # Nếu không có vaiTro => là hội viên bình thường
-        return redirect(url_for('HoiVien/hoi_vien', taikhoan=taiKhoan))
+        return redirect(url_for('hoi_vien', taikhoan=taiKhoan))
+
+        # return redirect(url_for('HoiVien/hoi-vien', taikhoan=taiKhoan))
 
     return render_template('login.html', err_msg=thong_bao)
 
@@ -69,9 +73,75 @@ def thong_tin_nhan_vien(taikhoan):
 def hoi_vien(taikhoan):
     return render_template('HoiVien/hoi_vien.html', taikhoan=taikhoan)
 
+@app.route("/hoso", methods=['GET', 'POST'])
+def ho_so():
+    form = ChangeInfoForm()
+    if form.validate_on_submit():
+        hoTen = form.hoTen.data
+        gioiTinh = form.gioiTinh.data
+        SDT = form.SDT.data
+        ngaySinh = form.ngaySinh.data
+        diaChi = form.diaChi.data
+
+        success, msg = current_user.update_profile(hoTen, gioiTinh, SDT, ngaySinh, diaChi)
+
+        if success:
+            flash(msg, "success")
+            return redirect(url_for('ho_so'))
+        else:
+            flash(msg, "ranger")
+
+    if request.method == 'GET':
+        form.hoTen.data = current_user.hoTen
+        form.gioiTinh.data = current_user.gioiTinh
+        form.SDT.data = current_user.SDT
+        form.ngaySinh.data = current_user.ngaySinh
+        form.diaChi.data = current_user.diaChi
+        # Xử lý riêng cho Giới tính (User lưu True/False nhưng Form Select cần chuỗi '1'/'0')
+        form.gioiTinh.data = '1' if current_user.gioiTinh else '0'
+
+    user_info = dao.get_user_by_id(current_user.id)
+    return render_template("HoiVien/hoso.html", user_info=user_info, form=form)
 
 
-@app.route('/logout', methods=['get', 'post'])
+@app.route('/api/upload-avatar', methods=['POST'])
+@login_required
+def upload_avatar():
+    if 'file' not in request.files:
+        return jsonify({'error': 'Không có file nào được gửi'}), 400
+
+    file = request.files['file']
+
+    if file.filename == '':
+        return jsonify({'error': 'Chưa chọn file'}), 400
+
+    if file:
+        try:
+            upload_result = cloudinary.uploader.upload(
+                file,
+                public_id=f"avatar_{current_user.id}",
+                folder="avatars",  # Tạo thư mục avatars trên Cloudinary
+                overwrite=True,
+                resource_type="image"
+            )
+
+            # Lấy URL ảnh an toàn (https)
+            image_url = upload_result['secure_url']
+
+            # Lưu URL vào Database
+            current_user.avatar = image_url
+            db.session.commit()
+
+            # Trả về URL để hiển thị ngay
+            return jsonify({'success': True, 'image_url': image_url})
+
+        except Exception as e:
+            app.logger.error(f"Lỗi upload Cloudinary: {e}")
+            return jsonify({'error': 'Lỗi khi upload lên Cloudinary'}), 500
+
+    return jsonify({'error': 'File không hợp lệ'}), 400
+
+@app.route('/logout', methods=['GET', 'POST'])
 def logout_process():
     logout_user()
     return redirect('/login')
@@ -269,7 +339,7 @@ def inject_current_user_role():
                 role = current_user.vaiTro.name
             else:
                 # Nếu current_user là User → kiểm tra bảng nhanvien
-                nv = NhanVien.query.get(current_user.id)
+                nv = db.session.get(current_user.id)
                 if nv and nv.vaiTro:
                     role = nv.vaiTro.name
     except:

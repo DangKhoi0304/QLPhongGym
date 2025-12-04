@@ -64,7 +64,7 @@ def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau
         eMail=email,
         taiKhoan=taiKhoan.strip(),
         matKhau=_md5(matKhau),
-        goiTap=int(goiTap) if goiTap is not None else None
+        # goiTap=int(goiTap) if goiTap is not None else None
     )
 
     try:

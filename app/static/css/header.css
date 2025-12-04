@@ -1,0 +1,14 @@
+nav, .navbar {
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+        border-bottom: none !important;
+    }
+
+    /* Chữ trên menu chuyển sang màu trắng */
+    nav a, .navbar a, .navbar-brand, .nav-link {
+        color: #ffffff !important;
+        opacity: 0.9;
+    }
+    nav a:hover, .navbar a:hover {
+        opacity: 1;
+    }

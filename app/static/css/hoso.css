@@ -1,0 +1,68 @@
+
+    .profile-banner-bg {
+        height: 150px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .banner-text {
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        z-index: 10;
+        text-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+    .banner-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    animation: float 6s infinite ease-in-out;
+    }
+    .shape-1 { width: 150px; height: 150px; top: -50px; left: -20px; }
+    .shape-2 { width: 100px; height: 100px; bottom: -20px; right: 10%; }
+    .shape-3 { width: 50px; height: 50px; top: 20px; right: 20%; background: rgba(255, 255, 255, 0.15); }
+    .mt-n5 { margin-top: -5rem !important; }
+
+    .avatar-box {
+        width: 200px; height: 200px;
+        background: #f8f9fa;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        border: 5px solid #fff;
+    }
+    .avatar-text {
+        font-size: 4rem;
+        font-weight: 800;
+        color: #764ba2;*
+    }
+
+    /* Nút icon máy ảnh */
+    .btn-upload-icon {
+        position: absolute;
+        bottom: 10px; right: 10px;
+        width: 42px; height: 42px;
+        display: flex; align-items: center; justify-content: center;
+        border: 3px solid #fff;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .btn-upload-icon:hover {
+        transform: scale(1.1);
+        background-color: #5a32a3;
+    }
+
+    .ls-1 { letter-spacing: 1px; font-size: 0.9rem; }
+
+    .info-group {
+        border-bottom: 1px solid #f0f2f5;
+        padding-bottom: 1.25rem;
+    }
+    .bg-light-subtle { background-color: #f8f9fa !important; }
+    .card.rounded-4 { border-radius: 1.5rem !important; }

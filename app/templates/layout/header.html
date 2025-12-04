@@ -1,7 +1,8 @@
 <!-- header.html -->
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
+<nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">GYM</a>
+        <a class="navbar-brand" href="/">GYM FITNESS</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                 aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -11,13 +12,13 @@
                 {% if current_user.is_authenticated %}
                     <!-- Hiển thị tên người dùng sau khi đăng nhập -->
                     <li class="nav-item">
-                        <a class="nav-link" href="/hoi-vien/<taikhoan>" data-title="Hồ Sơ">Chào, {{ current_user.get_username() }}</a>
+                        <a class="nav-link" href="/hoi-vien/<taikhoan>" data-title="Hồ Sơ">{{ current_user.get_username() }}</a>
                     </li>
-                     {% if current_user.is_khach_hang %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="thay-doi-thong-tin" data-title="Thay đổi thông tin">Thay đổi thông tin</a>
-                        </li>
-                    {% endif %}
+<!--                     {% if current_user.is_khach_hang %}-->
+<!--                        <li class="nav-item">-->
+<!--                            <a class="nav-link" href="thay-doi-thong-tin" data-title="Thay đổi thông tin">Thay đổi thông tin</a>-->
+<!--                        </li>-->
+<!--                    {% endif %}-->
                 {% endif %}
 
                 <li class="nav-item"><a class="nav-link" href="/" data-title="Trang Chủ">Trang Chủ</a></li>
@@ -37,3 +38,4 @@
         </div>
     </div>
 </nav>
+
