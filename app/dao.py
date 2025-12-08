@@ -1,31 +1,37 @@
 from app.models import User, HuanLuyenVien
 from app import app
-import  hashlib
 from uuid import uuid4
 from datetime import date
 from app import db
 from app.models import NhanVien, UserRole
 
-def _md5(s: str) -> str:
-    return hashlib.md5(s.strip().encode('utf-8')).hexdigest()
+DEFAULT_AVATAR = "default"
 
+import hashlib
+
+
+# ----------------------------------------------------------------------
+#  AUTH — sử dụng check_password() để hỗ trợ cả MD5 và mật khẩu mới
+# ----------------------------------------------------------------------
 def auth_nhan_vien(taikhoan, matkhau):
-    matkhau = str(hashlib.md5(matkhau.strip().encode('utf-8')).hexdigest())
+    # Kiểm tra nhân viên trước
+    nv = NhanVien.query.filter_by(taiKhoan=taikhoan).first()
+    if nv and nv.check_password(matkhau):
+        return nv
 
-    u = NhanVien.query.filter(NhanVien.taiKhoan.__eq__(taikhoan),
-                          NhanVien.matKhau.__eq__(matkhau)).first()
-    if u:
-        return u  # nếu là nhân viên → trả về ngay
+    # Kiểm tra hội viên
+    hv = User.query.filter_by(taiKhoan=taikhoan).first()
+    if hv and hv.check_password(matkhau):
+        return hv
 
-    # nếu không phải nhân viên → kiểm tra hội viên trong bảng Users
-    hv = User.query.filter(User.taiKhoan.__eq__(taikhoan),
-                        User.matKhau.__eq__(matkhau)).first()
-    return hv
+    return None
 
 
+# ----------------------------------------------------------------------
+#  Functions tìm user
+# ----------------------------------------------------------------------
 def get_user_by_id(id):
     return User.query.get(id)
-
 
 def _find_any(cls, **kwargs):
     return cls.query.filter_by(**kwargs).first()
@@ -45,16 +51,26 @@ def get_user_by_phone(phone):
         return None
     return _find_any(User, SDT=phone) or _find_any(NhanVien, SDT=phone)
 
-def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, goiTap=None):
-    """Tạo User mới, hash MD5, tránh unique-collision cho email/phone rỗng."""
+
+# ----------------------------------------------------------------------
+#  CREATE USER — lưu mật khẩu bằng set_password() (PBKDF2)
+# ----------------------------------------------------------------------
+def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, goiTap=None, avatar=None):
+
+    # kiểm tra trùng
     if get_user_by_username(taiKhoan) or (email and get_user_by_email(email)) or (sdt and get_user_by_phone(sdt)):
         return None
 
+    # fallback cho dữ liệu thiếu
     sdt = sdt.strip() if sdt and sdt.strip() else f"no-phone-{uuid4().hex}"
     email = email.strip() if email and email.strip() else f"no-email-{uuid4().hex}@no-reply.local"
     ngaySinh = ngaySinh or date.today()
-    gioitinh_bool = str(gioiTinh) in ('1','True','true')
+    gioitinh_bool = str(gioiTinh) in ('1', 'True', 'true')
 
+    # avatar default = "default"
+    avatar = (avatar.strip() if avatar and isinstance(avatar, str) and avatar.strip() else DEFAULT_AVATAR)
+
+    # tạo đối tượng user
     user = User(
         hoTen=(hoTen or '').strip(),
         gioiTinh=gioitinh_bool,
@@ -63,9 +79,11 @@ def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau
         SDT=sdt,
         eMail=email,
         taiKhoan=taiKhoan.strip(),
-        matKhau=_md5(matKhau),
-        # goiTap=int(goiTap) if goiTap is not None else None
+        avatar=avatar
     )
+
+    # HASH mật khẩu an toàn — KHÔNG dùng MD5
+    user.set_password(matKhau)
 
     try:
         db.session.add(user)
@@ -77,11 +95,10 @@ def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau
         return None
 
 
+# ----------------------------------------------------------------------
+#  Promote User -> Nhân Viên
+# ----------------------------------------------------------------------
 def promote_to_nhanvien(user, role_str):
-    """
-    Tạo 1 record trong nhanvien với id = user.id và vaiTro tương ứng.
-    role_str: 'NGUOIQUANTRI' | 'THUNGAN' | 'LETAN'
-    """
     if not user or not getattr(user, 'id', None):
         return None
     try:
@@ -89,15 +106,14 @@ def promote_to_nhanvien(user, role_str):
     except Exception:
         return None
 
-    # nếu đã có nhanvien tương ứng thì cập nhật vaiTro
     existing = NhanVien.query.get(user.id)
     if existing:
         existing.vaiTro = role_enum
         db.session.commit()
         return existing
 
-    # Tạo mới nhanvien (joined table: nhanvien.id = users.id)
     nv = NhanVien(id=user.id, vaiTro=role_enum)
+
     try:
         db.session.add(nv)
         db.session.commit()
@@ -106,27 +122,31 @@ def promote_to_nhanvien(user, role_str):
         db.session.rollback()
         return None
 
+
+# ----------------------------------------------------------------------
+#  Tạo Huấn luyện viên
+# ----------------------------------------------------------------------
 def create_huanluyenvien_from_user(user):
     if not user or not getattr(user, 'id', None):
         return False
 
-    # kiểm tra theo PK
     existing = HuanLuyenVien.query.get(user.id)
     if existing:
         return True
 
     try:
         hlv = HuanLuyenVien(
-            id = user.id,                # đặt id trùng user.id
-            hoTen = (user.hoTen or '').strip(),
-            SDT   = (user.SDT or '').strip(),
-            eMail = (user.eMail or '').strip()
+            id=user.id,
+            hoTen=(user.hoTen or '').strip(),
+            SDT=(user.SDT or '').strip(),
+            eMail=(user.eMail or '').strip()
         )
+
         db.session.add(hlv)
         db.session.commit()
         return True
+
     except Exception:
         db.session.rollback()
         app.logger.exception("create_huanluyenvien_from_user error")
         return False
-

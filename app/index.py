@@ -6,14 +6,20 @@ from app import app, db, dao, login
 from app.models import UserRole, NhanVien
 from flask_login import login_user, logout_user, current_user, login_required
 
-from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm
+from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm, ChangePasswordForm
 from app.utils_mail import send_mail_gmail
+
+from uuid import uuid4
+from werkzeug.utils import secure_filename
 
 import cloudinary
 import cloudinary.uploader
-app.secret_key = 'secret_key'  # Khóa bảo mật cho session
 
+DEFAULT_AVATAR = "/static/images/default-avatar.jpg"
+app.secret_key = 'secret_key'  # Khóa bảo mật cho session
+ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif'}
 DEFAULT_PASSWORD = "123456"
+
 @app.route('/')
 def index():
     return redirect('/login')
@@ -74,34 +80,80 @@ def hoi_vien(taikhoan):
     return render_template('HoiVien/hoi_vien.html', taikhoan=taikhoan)
 
 @app.route("/hoso", methods=['GET', 'POST'])
+@login_required
 def ho_so():
     form = ChangeInfoForm()
-    if form.validate_on_submit():
-        hoTen = form.hoTen.data
-        gioiTinh = form.gioiTinh.data
-        SDT = form.SDT.data
-        ngaySinh = form.ngaySinh.data
-        diaChi = form.diaChi.data
+    form_pw = ChangePasswordForm()
 
-        success, msg = current_user.update_profile(hoTen, gioiTinh, SDT, ngaySinh, diaChi)
+    # Xử lý POST — dùng hidden input 'action' để phân biệt
+    if request.method == 'POST':
+        action = request.form.get('action')
 
-        if success:
-            flash(msg, "success")
-            return redirect(url_for('ho_so'))
+        # ----- cập nhật thông tin profile -----
+        if action == 'update_profile':
+            # validate_on_submit() sẽ kiểm tra CSRF token + các validator
+            if form.validate_on_submit():
+                hoTen = form.hoTen.data
+                gioiTinh = form.gioiTinh.data
+                SDT = form.SDT.data
+                ngaySinh = form.ngaySinh.data
+                diaChi = form.diaChi.data
+
+                success, msg = current_user.update_profile(hoTen, gioiTinh, SDT, ngaySinh, diaChi)
+                if success:
+                    flash(msg, "success")
+                else:
+                    flash(msg, "danger")
+                return redirect(url_for('ho_so'))
+            else:
+                # form lỗi — show lỗi để dev biết
+                app.logger.debug("ChangeInfoForm errors: %s", form.errors)
+                flash("Form cập nhật thông tin không hợp lệ.", "danger")
+                return redirect(url_for('ho_so'))
+
+        # ----- đổi mật khẩu -----
+        elif action == 'change_password':
+            if form_pw.validate_on_submit():
+                current_pw = form_pw.current_password.data
+                new_pw = form_pw.new_password.data
+
+                # check mật khẩu hiện tại
+                # lưu ý: bạn dùng hiện tại hashing MD5 -> dùng check_password tương ứng
+                if not current_user.check_password(current_pw):
+                    flash("Mật khẩu hiện tại không đúng.", "danger")
+                    return redirect(url_for('ho_so'))
+
+                try:
+                    # cập nhật mật khẩu: dùng method set_password của model
+                    current_user.set_password(new_pw)
+                    db.session.commit()
+                    flash("Đổi mật khẩu thành công.", "success")
+                except Exception as ex:
+                    db.session.rollback()
+                    app.logger.exception("Lỗi khi đổi mật khẩu: %s", ex)
+                    flash("Đổi mật khẩu thất bại.", "danger")
+                return redirect(url_for('ho_so'))
+            else:
+                app.logger.debug("ChangePasswordForm errors: %s", form_pw.errors)
+                flash("Form đổi mật khẩu không hợp lệ.", "danger")
+                return redirect(url_for('ho_so'))
+
         else:
-            flash(msg, "ranger")
+            # POST nhưng không có action rõ ràng
+            app.logger.debug("Unknown POST action on /hoso: %s", request.form.to_dict())
+            flash("Yêu cầu không hợp lệ.", "danger")
+            return redirect(url_for('ho_so'))
 
-    if request.method == 'GET':
-        form.hoTen.data = current_user.hoTen
-        form.gioiTinh.data = current_user.gioiTinh
-        form.SDT.data = current_user.SDT
-        form.ngaySinh.data = current_user.ngaySinh
-        form.diaChi.data = current_user.diaChi
-        # Xử lý riêng cho Giới tính (User lưu True/False nhưng Form Select cần chuỗi '1'/'0')
-        form.gioiTinh.data = '1' if current_user.gioiTinh else '0'
+    # ----- GET: fill dữ liệu ban đầu cho form -----
+    # Populate ChangeInfoForm từ current_user
+    form.hoTen.data = current_user.hoTen
+    form.gioiTinh.data = '1' if current_user.gioiTinh else '0'
+    form.SDT.data = current_user.SDT
+    form.ngaySinh.data = current_user.ngaySinh
+    form.diaChi.data = current_user.diaChi
 
     user_info = dao.get_user_by_id(current_user.id)
-    return render_template("HoiVien/hoso.html", user_info=user_info, form=form)
+    return render_template("HoiVien/hoso.html", user_info=user_info, form=form, form_pw=form_pw)
 
 
 @app.route('/api/upload-avatar', methods=['POST'])
@@ -171,8 +223,33 @@ def register():
             flash("Số điện thoại đã được sử dụng.", "danger")
             return render_template('register.html', form=form)
 
-        # Tạo user (dao.create_user sẽ hash MD5 như hiện tại)
-        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau)
+        # Xử lý avatar upload (từ input name="avatar")
+        avatar_url = DEFAULT_AVATAR
+        avatar_file = request.files.get('avatar')
+        if avatar_file and avatar_file.filename:
+            # kiểm tra extension
+            filename = secure_filename(avatar_file.filename)
+            ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            if ext in ALLOWED_EXT:
+                try:
+                    # Nếu bạn đã cấu hình cloudinary.config(...) ở chỗ khởi tạo app
+                    upload_result = cloudinary.uploader.upload(
+                        avatar_file,
+                        public_id=f"avatar_{uuid4().hex}",
+                        folder="avatars",
+                        overwrite=True,
+                        resource_type="image",
+                        transformation=[{"width": 512, "height": 512, "crop": "limit"}]
+                    )
+                    avatar_url = upload_result.get('secure_url') or avatar_url
+                except Exception as ex:
+                    app.logger.exception("Lỗi upload avatar lên Cloudinary: %s", ex)
+                    # fallback: để avatar_url = DEFAULT_AVATAR
+            else:
+                flash("File ảnh không hợp lệ (chỉ jpg/png/gif).", "warning")
+
+        # Tạo user — truyền avatar vào DAO
+        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, goiTap=None, avatar=avatar_url)
         if not user:
             flash("Tạo tài khoản thất bại. Vui lòng thử lại.", "danger")
             return render_template('register.html', form=form)
@@ -189,7 +266,6 @@ def register():
                 )
                 flash("Đăng ký thành công! Email xác nhận đã được gửi.", "success")
             except Exception as ex:
-                # log lỗi để debug
                 app.logger.error("Lỗi gửi mail: %s", ex)
                 flash("Đăng ký thành công, nhưng gửi email thất bại.", "warning")
         else:
@@ -334,15 +410,17 @@ def inject_current_user_role():
     role = None
     try:
         if current_user.is_authenticated:
-            # Nếu current_user là nhân viên (có vaiTro)
-            if hasattr(current_user, 'vaiTro') and current_user.vaiTro is not None:
+            # Trường hợp current_user thực chất là một instance NhanVien (joined table)
+            # => trực tiếp lấy vaiTro nếu có
+            if hasattr(current_user, 'vaiTro') and getattr(current_user, 'vaiTro') is not None:
+                # current_user.vaiTro là enum UserRole -> lấy name
                 role = current_user.vaiTro.name
             else:
-                # Nếu current_user là User → kiểm tra bảng nhanvien
-                nv = db.session.get(current_user.id)
-                if nv and nv.vaiTro:
+                # Nếu current_user là User (không có vaiTro trực tiếp) -> truy vấn bảng nhanvien theo id
+                nv = NhanVien.query.get(current_user.id)
+                if nv and nv.vaiTro is not None:
                     role = nv.vaiTro.name
-    except:
+    except Exception as e:
         role = None
 
     return dict(current_user_role=role)

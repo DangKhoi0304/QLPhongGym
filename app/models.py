@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from enum import Enum as RoleEnum, unique
 from flask_login import UserMixin
 import hashlib
+import re
 from sqlalchemy.orm import relationship, Relationship
 
 
@@ -71,12 +72,39 @@ class User(db.Model, UserMixin):
     def username(self):
         return self.get_username()
 
-    def set_password(self, password):
-        # dùng werkzeug để hash an toàn
-        self.matKhau = hashlib.md5(password.encode()).hexdigest()
+    def set_password(self, password: str):
+        """Hash password an toàn và lưu vào self.matKhau"""
+        # use werkzeug default pbkdf2:sha256
+        self.matKhau = generate_password_hash(password)
 
-    def check_password(self, password):
-        return check_password_hash(self.matKhau, password)
+    def check_password(self, password: str):
+        """
+        Kiểm tra password.
+        Nếu DB đang chứa MD5 (32 hex) thì kiểm tra MD5; nếu khớp -> rehash bằng werkzeug và lưu.
+        Trả về True/False.
+        """
+        if not self.matKhau:
+            return False
+
+        # nhận dạng MD5: chính xác 32 ký tự hex
+        if isinstance(self.matKhau, str) and re.fullmatch(r'[0-9a-f]{32}', self.matKhau):
+            # db đang lưu MD5 cũ
+            md5_try = hashlib.md5(password.encode('utf-8')).hexdigest()
+            if md5_try == self.matKhau:
+                # chuyển sang hash an toàn hơn
+                try:
+                    self.set_password(password)
+                    db.session.commit()
+                except Exception:
+                    db.session.rollback()
+                return True
+            return False
+
+        # nếu không phải MD5 -> kiểm tra với werkzeug
+        try:
+            return check_password_hash(self.matKhau, password)
+        except Exception:
+            return False
 
 
 class NhanVien(User):
@@ -102,45 +130,49 @@ if __name__== '__main__':
         db.create_all()
 
         # Tạo user test - dùng set_password để hash an toàn
-        # u = NhanVien(
-        #     hoTen="Nguyễn Đăng Khôi",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 2, 21),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0762464676",
-        #     eMail="khoi123@gmail.com",
-        #     taiKhoan='admin',
-        #     vaiTro=UserRole.NGUOIQUANTRI
-        # )
-        # u.set_password('123456')
-        # db.session.add(u)
-        #
-        #
-        # nv = NhanVien(
-        #     hoTen="Trần Quốc Phong",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 11, 24),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0799773010",
-        #     eMail="toquocphong123@gmail.com",
-        #     vaiTro=UserRole.THUNGAN,
-        #     taiKhoan="quocphong",
-        # )
-        # nv.set_password('123456')
-        # db.session.add(nv)
-        # db.session.commit()
-        #
-        # nv = NhanVien(
-        #     hoTen="Tô Quốc Bình",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 11, 24),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0733546410",
-        #     eMail="toquocbinh123@gmail.com",
-        #     vaiTro=UserRole.LETAN,
-        #     taiKhoan="binh",
-        # )
-        # nv.set_password('123456')
-        # db.session.add(nv)
-        # db.session.commit()
+        u = NhanVien(
+            hoTen="Nguyễn Đăng Khôi",
+            gioiTinh=True,
+            ngaySinh=date(2004, 2, 21),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0762464676",
+            eMail="khoi123@gmail.com",
+            taiKhoan='admin',
+            vaiTro=UserRole.NGUOIQUANTRI,
+            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        )
+        u.set_password('123456')
+        db.session.add(u)
+
+
+        nv = NhanVien(
+            hoTen="Trần Quốc Phong",
+            gioiTinh=True,
+            ngaySinh=date(2004, 11, 24),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0799773010",
+            eMail="toquocphong123@gmail.com",
+            vaiTro=UserRole.THUNGAN,
+            taiKhoan="quocphong",
+            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        )
+        nv.set_password('123456')
+        db.session.add(nv)
+        db.session.commit()
+
+        nv = NhanVien(
+            hoTen="Tô Quốc Bình",
+            gioiTinh=True,
+            ngaySinh=date(2004, 11, 24),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0733546410",
+            eMail="toquocbinh123@gmail.com",
+            vaiTro=UserRole.LETAN,
+            taiKhoan="binh",
+            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        )
+        nv.set_password('123456')
+        db.session.add(nv)
+        db.session.commit()
+
 

@@ -4,13 +4,13 @@ from wtforms.fields.datetime import DateField
 from wtforms.validators import Optional
 from wtforms.fields.simple import PasswordField, SubmitField, StringField
 from wtforms.validators import DataRequired, Length, EqualTo, Email
-
+from flask_wtf.file import FileField, FileAllowed
 
 class ChangePasswordForm(FlaskForm):
-    mat_khau_cu = PasswordField('Mật khẩu cũ', validators=[DataRequired()])
-    mat_khau_moi = PasswordField('Mật khẩu mới', validators=[DataRequired(), Length(min=8)])
-    xac_nhan_mat_khau = PasswordField('Xác nhận mật khẩu mới', validators=[DataRequired(), EqualTo('mat_khau_moi')])
-    submit = SubmitField('Đổi Mật Khẩu')
+    current_password = PasswordField('Mật khẩu hiện tại', validators=[DataRequired(), Length(min=6)])
+    new_password = PasswordField('Mật khẩu mới', validators=[DataRequired(), Length(min=6)])
+    new_password2 = PasswordField('Xác nhận mật khẩu mới', validators=[DataRequired(), EqualTo('new_password', message='Mật khẩu không khớp')])
+    submit = SubmitField('Đổi mật khẩu')
 
 class ChangeInfoForm(FlaskForm):
     hoTen = StringField('Họ và tên', validators=[DataRequired(), Length(max=50)])
@@ -18,7 +18,6 @@ class ChangeInfoForm(FlaskForm):
     ngaySinh = DateField('Ngày sinh', format='%Y-%m-%d', validators=[Optional()])
     SDT = StringField('Số điện thoại', validators=[DataRequired(), Length(max=20)])
     diaChi = StringField('Địa chỉ', validators=[Optional(), Length(max=255)])
-
     submit = SubmitField('Cập nhật thông tin')
 
 class RegisterForm(FlaskForm):
@@ -31,6 +30,7 @@ class RegisterForm(FlaskForm):
     taiKhoan = StringField('Tài khoản', validators=[DataRequired(), Length(min=3, max=50)])
     matKhau = PasswordField('Mật khẩu', validators=[DataRequired(), Length(min=6)])
     matKhau2 = PasswordField('Xác nhận mật khẩu', validators=[DataRequired(), EqualTo('matKhau', message='Mật khẩu không khớp')])
+    avatar = FileField("Ảnh đại diện",validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif'], "Chỉ cho phép ảnh!")])
     submit = SubmitField('Đăng ký')
 
 class RegisterFormStaff(FlaskForm):
@@ -47,23 +47,6 @@ class RegisterFormStaff(FlaskForm):
         validators=[DataRequired()]
     )
     submit = SubmitField('Đăng ký')
-
-
-class RegisterFormStaff(FlaskForm):
-    hoTen = StringField('Họ và tên', validators=[DataRequired(), Length(min=2, max=200)])
-    gioiTinh = SelectField('Giới tính', choices=[('1','Nam'),('0','Nữ')], validators=[Optional()])
-    ngaySinh = DateField('Ngày sinh', format='%Y-%m-%d', validators=[Optional()])
-    diaChi = StringField('Địa chỉ', validators=[Optional(), Length(max=255)])
-    SDT = StringField('Số điện thoại', validators=[Optional(), Length(max=20)])
-    eMail = StringField('Email', validators=[Optional(), Email(), Length(max=255)])
-    taiKhoan = StringField('Tài khoản', validators=[DataRequired(), Length(min=3, max=50)])
-    goiTap = SelectField(
-        'Gói tập',
-        choices=[('1','1 tháng'),('3','3 tháng'),('6','6 tháng'),('12','12 tháng')],
-        validators=[DataRequired()]
-    )
-    submit = SubmitField('Đăng ký')
-
 
 
 class StaffRegisterForm(RegisterForm):
