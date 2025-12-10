@@ -1,4 +1,7 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
+
+from cloudinary.provisioning import users
+
 from app import db, app
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, BOOLEAN, Date, Enum, UniqueConstraint
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,6 +11,10 @@ import hashlib
 import re
 from sqlalchemy.orm import relationship, Relationship
 
+class BaseModel(db.Model):
+    __abstract__ = True
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
 class UserRole(RoleEnum):
     NGUOIQUANTRI = 1
@@ -15,10 +22,9 @@ class UserRole(RoleEnum):
     LETAN = 3
 
 
-class User(db.Model, UserMixin):
+class User(BaseModel, UserMixin):
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
     hoTen = Column(String(50), nullable=False)
     gioiTinh = Column(Boolean, nullable=False)
     ngaySinh = Column(Date, nullable=False)
@@ -31,6 +37,16 @@ class User(db.Model, UserMixin):
     avatar = Column(String(255), nullable=False)
     # goiTap = Column(Integer, nullable=True)
 
+    def __str__(self):
+        return self.hoTen
+
+    def get_id(self):
+        return str(self.id)
+
+    # thêm method get_username và property username để template dùng thoải mái
+    def get_username(self):
+        # trả tên hiển thị (bạn có thể đổi thành self.taiKhoan nếu muốn)
+        return self.hoTen
     def update_profile(self, hoTen, gioiTinh,SDT, ngaySinh, diaChi):
         try:
             # 1. Cập nhật thông tin cơ bản
@@ -56,18 +72,7 @@ class User(db.Model, UserMixin):
             db.session.rollback()
             print(f"Lỗi update: {e}")
             return False, "Lỗi!!!"
-
-    def __str__(self):
-        return self.hoTen
-
-    def get_id(self):
-        return str(self.id)
-
-    # thêm method get_username và property username để template dùng thoải mái
-    def get_username(self):
-        # trả tên hiển thị (bạn có thể đổi thành self.taiKhoan nếu muốn)
-        return self.hoTen
-
+        
     @property
     def username(self):
         return self.get_username()
@@ -110,7 +115,7 @@ class User(db.Model, UserMixin):
 class NhanVien(User):
     __tablename__ = 'nhanvien'
 
-    id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     vaiTro = Column(Enum(UserRole))
 
     def get_VaiTro(self):
@@ -125,54 +130,112 @@ class HuanLuyenVien(db.Model):
 
     user = db.relationship('User', backref=db.backref('huanluyenvien', uselist=False))
 
+class GoiTap(BaseModel):
+    __tablename__ = 'goitap'
+
+    tenGoiTap = Column(db.String(255), nullable=False)
+    thoiHan = Column(Integer, nullable=False)
+
+    giaTienGoi = Column(Float, nullable=False)
+
+    def __str__(self):
+        return f"{self.tenGoiTap} ({self.thoiHan} ngày)"
+
+class DangKyGoiTap(BaseModel):
+    __tablename__ = 'dangkygoitap'
+
+    ngayDangKy = Column(Date, default=datetime.now, nullable=False)
+    ngayKetThuc = Column(Date, nullable=False)
+    trangThai = Column(Boolean, default=True)  # True: Đang kích hoạt, False: Hết hạn/Hủy
+    hoiVien_id = Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    goiTap_id = Column(db.Integer, db.ForeignKey('goitap.id'), nullable=False)
+
+    hoi_vien= relationship('User', backref='DangKyGoiTap', lazy=True)
+    goi_tap = relationship('GoiTap', backref='DangKyGoiTap', lazy=True)
+
+    def tinh_ngay_het_han(self):
+        if self.goi_tap and self.goi_tap.thoiHan:
+            if not self.ngayDangKy:
+                self.ngayDangKy = datetime.now().date()
+        self.ngayKetThuc = self.ngayDangKy + timedelta(days=int(self.goi_tap.thoiHan))
+
 if __name__== '__main__':
     with app.app_context():
         db.create_all()
-
+        #
+        # g1 = GoiTap(tenGoiTap="Gói 2 Tháng", thoiHan=30, giaTienGoi=500000)
+        # g2 = GoiTap(tenGoiTap="Gói 4 Tháng", thoiHan=90, giaTienGoi=1200000)
+        # g3 = GoiTap(tenGoiTap="Gói 8 Tháng", thoiHan=180, giaTienGoi=2000000)
+        # g4 = GoiTap(tenGoiTap="Gói 2 Năm", thoiHan=365, giaTienGoi=3500000)
+        #
+        # # 3. Lưu vào database
+        # db.session.add_all([g1, g2, g3, g4])
+        # db.session.commit()
         # Tạo user test - dùng set_password để hash an toàn
-        u = NhanVien(
-            hoTen="Nguyễn Đăng Khôi",
-            gioiTinh=True,
-            ngaySinh=date(2004, 2, 21),
-            diaChi="Thành phố Hồ Chí Minh",
-            SDT="0762464676",
-            eMail="khoi123@gmail.com",
-            taiKhoan='admin',
-            vaiTro=UserRole.NGUOIQUANTRI,
-            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
-        )
-        u.set_password('123456')
-        db.session.add(u)
-
-
-        nv = NhanVien(
-            hoTen="Trần Quốc Phong",
-            gioiTinh=True,
-            ngaySinh=date(2004, 11, 24),
-            diaChi="Thành phố Hồ Chí Minh",
-            SDT="0799773010",
-            eMail="toquocphong123@gmail.com",
-            vaiTro=UserRole.THUNGAN,
-            taiKhoan="quocphong",
-            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
-        )
-        nv.set_password('123456')
-        db.session.add(nv)
-        db.session.commit()
-
-        nv = NhanVien(
-            hoTen="Tô Quốc Bình",
-            gioiTinh=True,
-            ngaySinh=date(2004, 11, 24),
-            diaChi="Thành phố Hồ Chí Minh",
-            SDT="0733546410",
-            eMail="toquocbinh123@gmail.com",
-            vaiTro=UserRole.LETAN,
-            taiKhoan="binh",
-            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
-        )
-        nv.set_password('123456')
-        db.session.add(nv)
-        db.session.commit()
-
+        # u = NhanVien(
+        #     hoTen="Nguyễn Đăng Khôi",
+        #     gioiTinh=True,
+        #     ngaySinh=date(2004, 2, 21),
+        #     diaChi="Thành phố Hồ Chí Minh",
+        #     SDT="0762464676",
+        #     eMail="khoi123@gmail.com",
+        #     taiKhoan='admin',
+        #     vaiTro=UserRole.NGUOIQUANTRI,
+        #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        # )
+        # u.set_password('123456')
+        # db.session.add(u)
+        #
+        #
+        # nv = NhanVien(
+        #     hoTen="Trần Quốc Phong",
+        #     gioiTinh=True,
+        #     ngaySinh=date(2004, 11, 24),
+        #     diaChi="Thành phố Hồ Chí Minh",
+        #     SDT="0799773010",
+        #     eMail="toquocphong123@gmail.com",
+        #     vaiTro=UserRole.THUNGAN,
+        #     taiKhoan="quocphong",
+        #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        # # u = NhanVien(
+        # #     hoTen="Nguyễn Đăng Khôi",
+        # #     gioiTinh=True,
+        # #     ngaySinh=date(2004, 2, 21),
+        # #     diaChi="Thành phố Hồ Chí Minh",
+        # #     SDT="0762464676",
+        # #     eMail="khoi123@gmail.com",
+        # #     taiKhoan='admin',
+        # #     vaiTro=UserRole.NGUOIQUANTRI
+        #  )
+        # # u.set_password('123456')
+        # # db.session.add(u)
+        #
+        # nv = NhanVien(
+        #     hoTen="Tô Quốc Bình",
+        #     gioiTinh=True,
+        #     ngaySinh=date(2004, 11, 24),
+        #     diaChi="Thành phố Hồ Chí Minh",
+        #     SDT="0733546410",
+        #     eMail="toquocbinh123@gmail.com",
+        #     vaiTro=UserRole.LETAN,
+        #     taiKhoan="binh",
+        #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        # )
+        # nv.set_password('123456')
+        # db.session.add(nv)
+        # db.session.commit()
+        #
+        # nv = NhanVien(
+        #     hoTen="Tô Quốc Bình",
+        #     gioiTinh=True,
+        #     ngaySinh=date(2004, 11, 24),
+        #     diaChi="Thành phố Hồ Chí Minh",
+        #     SDT="0733546410",
+        #     eMail="toquocbinh123@gmail.com",
+        #     vaiTro=UserRole.LETAN,
+        #     taiKhoan="binh",
+        # )
+        # nv.set_password('123456')
+        # db.session.add(nv)
+        # db.session.commit()
 

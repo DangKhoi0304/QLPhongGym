@@ -3,7 +3,7 @@ from random import choice
 from flask import render_template, request, redirect, session, flash, url_for, jsonify
 from app import app, db, dao, login
 
-from app.models import UserRole, NhanVien
+from app.models import UserRole, NhanVien, GoiTap
 from flask_login import login_user, logout_user, current_user, login_required
 
 from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm, ChangePasswordForm
@@ -12,7 +12,7 @@ from app.utils_mail import send_mail_gmail
 from uuid import uuid4
 from werkzeug.utils import secure_filename
 
-import cloudinary
+import cloudinary, math
 import cloudinary.uploader
 
 DEFAULT_AVATAR = "/static/images/default-avatar.jpg"
@@ -22,12 +22,24 @@ DEFAULT_PASSWORD = "123456"
 
 @app.route('/')
 def index():
-    return redirect('/login')
+    page = request.args.get('page', 1, type=int)
+    ds_goi_tap = dao.load_goi_tap(page=page)
+
+    # 2. Truyền biến 'packages' ra template index.html
+    return render_template('index.html',
+                           packages=ds_goi_tap,
+                           pages=math.ceil(dao.count_goi_tap()/app.config['PAGE_SIZE'])
+                           )
 
 @app.context_processor
 def inject_enums():
     # trả UserRole vào mọi template Jinja => bạn có thể dùng UserRole.NGUOIQUANTRI trong template
     return dict(UserRole=UserRole)
+
+@app.route('/logout', methods=['GET', 'POST'])
+def logout_process():
+    logout_user()
+    return redirect('/login')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_process():
@@ -43,6 +55,10 @@ def login_process():
 
         # đăng nhập thành công
         login_user(user)
+        #Nếu có next thì quay về trang cũ
+        next_page = request.args.get('next') or request.form.get('next')
+        if next_page:
+            return redirect(next_page)
 
         # Nếu đối tượng có method get_VaiTro (là NhanVien)
         if hasattr(user, 'get_VaiTro'):
@@ -62,7 +78,6 @@ def login_process():
         # Nếu không có vaiTro => là hội viên bình thường
         return redirect(url_for('hoi_vien', taikhoan=taiKhoan))
 
-        # return redirect(url_for('HoiVien/hoi-vien', taikhoan=taiKhoan))
 
     return render_template('login.html', err_msg=thong_bao)
 
@@ -140,7 +155,7 @@ def ho_so():
 
         else:
             # POST nhưng không có action rõ ràng
-            app.logger.debug("Unknown POST action on /hoso: %s", request.form.to_dict())
+            app.logger.debug("Unknown POST action on /ho_so: %s", request.form.to_dict())
             flash("Yêu cầu không hợp lệ.", "danger")
             return redirect(url_for('ho_so'))
 
@@ -153,8 +168,10 @@ def ho_so():
     form.diaChi.data = current_user.diaChi
 
     user_info = dao.get_user_by_id(current_user.id)
-    return render_template("HoiVien/hoso.html", user_info=user_info, form=form, form_pw=form_pw)
 
+    return render_template("HoiVien/ho_so.html", user_info=user_info, form=form, form_pw=form_pw)
+
+    return render_template("HoiVien/ho_so.html", user_info=user_info, form=form)
 
 @app.route('/api/upload-avatar', methods=['POST'])
 @login_required
@@ -192,11 +209,6 @@ def upload_avatar():
             return jsonify({'error': 'Lỗi khi upload lên Cloudinary'}), 500
 
     return jsonify({'error': 'File không hợp lệ'}), 400
-
-@app.route('/logout', methods=['GET', 'POST'])
-def logout_process():
-    logout_user()
-    return redirect('/login')
 
 @app.route('/dangky', methods=['GET','POST'])
 def register():
@@ -416,9 +428,13 @@ def inject_current_user_role():
                 # current_user.vaiTro là enum UserRole -> lấy name
                 role = current_user.vaiTro.name
             else:
+
                 # Nếu current_user là User (không có vaiTro trực tiếp) -> truy vấn bảng nhanvien theo id
                 nv = NhanVien.query.get(current_user.id)
                 if nv and nv.vaiTro is not None:
+                # Nếu current_user là User
+                    nv = db.session.get(NhanVien, current_user.id)
+                if nv and nv.vaiTro:
                     role = nv.vaiTro.name
     except Exception as e:
         role = None

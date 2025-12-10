@@ -2,7 +2,7 @@ USE gymdb;
 
 
 CREATE TABLE GoiTap (
-    maGoiTap INT PRIMARY KEY AUTO_INCREMENT,
+    id INT PRIMARY KEY AUTO_INCREMENT,
     tenGoiTap VARCHAR(255),
     thoiHan DATE,
     giaTienGoi DECIMAL(10,2)

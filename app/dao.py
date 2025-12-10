@@ -1,4 +1,4 @@
-from app.models import User, HuanLuyenVien
+from app.models import User, HuanLuyenVien, GoiTap
 from app import app
 from uuid import uuid4
 from datetime import date
@@ -150,3 +150,17 @@ def create_huanluyenvien_from_user(user):
         db.session.rollback()
         app.logger.exception("create_huanluyenvien_from_user error")
         return False
+# ----------------------------------------------------------------------
+#  Xử lý gói tập - Phân trang
+# ----------------------------------------------------------------------
+def count_goi_tap():
+    return GoiTap.query.count()
+
+
+def load_goi_tap(page=1):
+
+    page_size = app.config['PAGE_SIZE']
+
+    start = (page - 1) * page_size
+
+    return GoiTap.query.slice(start, start + page_size).all()
