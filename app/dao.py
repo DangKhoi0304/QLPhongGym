@@ -1,7 +1,7 @@
-from app.models import User, HuanLuyenVien, GoiTap
+from app.models import User, HuanLuyenVien, GoiTap, DangKyGoiTap, ThanhToan
 from app import app
 from uuid import uuid4
-from datetime import date
+from datetime import date, datetime, timedelta
 from app import db
 from app.models import NhanVien, UserRole
 
@@ -15,16 +15,16 @@ import hashlib
 # ----------------------------------------------------------------------
 def auth_nhan_vien(taikhoan, matkhau):
     # Kiểm tra nhân viên trước
-    nv = NhanVien.query.filter_by(taiKhoan=taikhoan).first()
-    if nv and nv.check_password(matkhau):
-        return nv
 
-    # Kiểm tra hội viên
-    hv = User.query.filter_by(taiKhoan=taikhoan).first()
-    if hv and hv.check_password(matkhau):
-        return hv
 
+    user = User.query.filter_by(taiKhoan=taikhoan).first()
+    if user and user.check_password(matkhau):
+        # if user.NhanVienProfile:
+        #     return user.NhanVienProfile
+
+        return user
     return None
+
 
 
 # ----------------------------------------------------------------------
@@ -39,17 +39,17 @@ def _find_any(cls, **kwargs):
 def get_user_by_username(username):
     if not username:
         return None
-    return _find_any(User, taiKhoan=username) or _find_any(NhanVien, taiKhoan=username)
+    return _find_any(User, taiKhoan=username)
 
 def get_user_by_email(email):
     if not email:
         return None
-    return _find_any(User, eMail=email) or _find_any(NhanVien, eMail=email)
+    return _find_any(User, eMail=email)
 
 def get_user_by_phone(phone):
     if not phone:
         return None
-    return _find_any(User, SDT=phone) or _find_any(NhanVien, SDT=phone)
+    return _find_any(User, SDT=phone)
 
 
 # ----------------------------------------------------------------------
@@ -106,13 +106,13 @@ def promote_to_nhanvien(user, role_str):
     except Exception:
         return None
 
-    existing = NhanVien.query.get(user.id)
+    existing = NhanVien.query.get(user_id=user.id).first()
     if existing:
         existing.vaiTro = role_enum
         db.session.commit()
         return existing
 
-    nv = NhanVien(id=user.id, vaiTro=role_enum)
+    nv = NhanVien(user_id=user.id, vaiTro=role_enum)
 
     try:
         db.session.add(nv)
@@ -156,7 +156,6 @@ def create_huanluyenvien_from_user(user):
 def count_goi_tap():
     return GoiTap.query.count()
 
-
 def load_goi_tap(page=1):
 
     page_size = app.config['PAGE_SIZE']
@@ -164,3 +163,40 @@ def load_goi_tap(page=1):
     start = (page - 1) * page_size
 
     return GoiTap.query.slice(start, start + page_size).all()
+
+def add_receipt(user_id, goiTap_id, nhanVien_id = None):
+    try:
+        goiTap = GoiTap.query.get(goiTap_id)
+        if not goiTap:
+            return False, "Gói tập không tồn tại!!!"
+        ngayDangKy = datetime.now().date()
+        ngayKetThuc = ngayDangKy + timedelta(days=goiTap.thoiHan)
+
+        dk = DangKyGoiTap(
+            ngayDangKy=ngayDangKy,
+            ngayKetThuc=ngayKetThuc,
+            trangThai = True,
+            hoiVien_id = user_id,
+            goiTap_id = goiTap_id
+        )
+        db.session.add(dk)
+        db.session.flush()
+
+        method = "Tiền mặt" if nhanVien_id else "Chuyển khoản"
+
+        hoa_don = ThanhToan(
+            soTienTT = goiTap.giaTienGoi,
+            ngayThanhToan = datetime.now(),
+            phuongThuc = method,
+            hoiVien_id = user_id,
+            dangKyGoiTap_id = dk.id,
+            nhanVien_id = nhanVien_id
+        )
+        db.session.add(hoa_don)
+
+        db.session.commit()
+        return True, "Đăng ký thành công"
+    except Exception as ex:
+        db.session.rollback()
+        app.logger.exception("add_Receipt error: %s", ex)
+        return False

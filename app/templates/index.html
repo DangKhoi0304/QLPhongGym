@@ -3,6 +3,7 @@
 {% block title %}Trang chủ{% endblock %}
 
 {% block content %}
+<script src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
 
     <div class="container py-5" style="max-width: 1100px;">
         <div class="text-center mb-5">
@@ -35,12 +36,13 @@
 
                   <div class="mt-auto">
                     {% if current_user.is_authenticated %}
-                        <button class="btn btn-outline-primary btn-sm w-100 rounded-pill font-weight-bold"
-                                onclick="alert('Tính năng đang phát triển!')">
-                            Đăng ký ngay
+                        <button type="button"
+                                onclick="dangKyGoiTap({{ p.id }})"
+                                class="btn btn-success btn-sm w-100 rounded-pill font-weight-bold shadow">
+                            <i class="fa fa-shopping-cart"></i> Đăng ký ngay
                         </button>
                     {% else %}
-                        <<a href="{{ url_for('login_process', next=request.full_path) }}"
+                        <a href="{{ url_for('login_process', next=request.full_path) }}"
                            class="btn btn-primary btn-sm w-100 rounded-pill">
                            Đăng nhập để mua
                         </a>

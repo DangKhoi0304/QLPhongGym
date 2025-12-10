@@ -52,3 +52,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+
+function dangKyGoiTap(goiTap_id) {
+    if (confirm("Bạn có chắc chắn muốn đăng ký gói tập không? Tiền sẽ trừ thẳng vào ví.") === true) {
+
+        fetch('/api/buy_package', {
+            method: 'POST',
+            body: JSON.stringify({
+                'goiTap_id': goiTap_id
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.code === 200) {
+                alert(data.msg);
+                location.reload();
+            } else {
+                alert("Thất Bại: " + data.msg);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Hệ thống lỗi! Xem console để biết chi tiết.");
+        });
+    }
+}

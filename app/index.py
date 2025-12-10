@@ -61,11 +61,8 @@ def login_process():
             return redirect(next_page)
 
         # Nếu đối tượng có method get_VaiTro (là NhanVien)
-        if hasattr(user, 'get_VaiTro'):
-            try:
-                vai_tro = user.get_VaiTro()
-            except Exception:
-                vai_tro = None
+        if user.NhanVienProfile:
+            vai_tro = user.NhanVienProfile.vaiTro
 
             if vai_tro == UserRole.THUNGAN:
                 return redirect(f'/nhan-vien/{taiKhoan}')
@@ -209,6 +206,21 @@ def upload_avatar():
             return jsonify({'error': 'Lỗi khi upload lên Cloudinary'}), 500
 
     return jsonify({'error': 'File không hợp lệ'}), 400
+@app.route('/api/buy_package', methods=['POST'])
+@login_required
+def buy_package():
+    data = request.json
+    goiTap_id = data['goiTap_id']
+    if not goiTap_id:
+        return jsonify({'code': 400, 'msg': 'Lỗi: Không tìm thấy gói tập'})
+
+    success, msg = dao.add_receipt(user_id=current_user.id, goiTap_id=goiTap_id, nhanVien_id=None)
+
+    if success:
+        return jsonify({'code': 200, 'msg': 'Đăng ký thành công!'})
+    else:
+        return jsonify({'code': 400, 'msg': msg})
+
 
 @app.route('/dangky', methods=['GET','POST'])
 def register():
@@ -261,7 +273,7 @@ def register():
                 flash("File ảnh không hợp lệ (chỉ jpg/png/gif).", "warning")
 
         # Tạo user — truyền avatar vào DAO
-        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, goiTap=None, avatar=avatar_url)
+        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, avatar=avatar_url)
         if not user:
             flash("Tạo tài khoản thất bại. Vui lòng thử lại.", "danger")
             return render_template('register.html', form=form)
@@ -417,26 +429,18 @@ def staff_dangky_hlv():
 
     return render_template('dangky_hlv.html', form=form)
 
+
 @app.context_processor
 def inject_current_user_role():
     role = None
     try:
         if current_user.is_authenticated:
-            # Trường hợp current_user thực chất là một instance NhanVien (joined table)
-            # => trực tiếp lấy vaiTro nếu có
-            if hasattr(current_user, 'vaiTro') and getattr(current_user, 'vaiTro') is not None:
-                # current_user.vaiTro là enum UserRole -> lấy name
-                role = current_user.vaiTro.name
-            else:
 
-                # Nếu current_user là User (không có vaiTro trực tiếp) -> truy vấn bảng nhanvien theo id
-                nv = NhanVien.query.get(current_user.id)
-                if nv and nv.vaiTro is not None:
-                # Nếu current_user là User
-                    nv = db.session.get(NhanVien, current_user.id)
-                if nv and nv.vaiTro:
-                    role = nv.vaiTro.name
+            if current_user.NhanVienProfile:
+
+                role = current_user.NhanVienProfile.vaiTro.name
     except Exception as e:
+        print(f"Lỗi inject role: {e}")
         role = None
 
     return dict(current_user_role=role)

@@ -1,29 +1,30 @@
 import hashlib
 
 from flask_admin import Admin
-from flask_wtf import FlaskForm
-from wtforms import IntegerField, StringField, validators, ValidationError
 
 from app import app, db
 from flask_admin.contrib.sqla import ModelView
-from app.models import NhanVien
+from app.models import NhanVien, User
 
 admin = Admin(app=app, name='Người Quản Trị', template_mode='bootstrap4')
 
 class NhanVienView(ModelView):
+    column_list = ['user.hoTen', 'user.gioiTinh','user.ngaySinh','user.diaChi','user.SDT','user.eMail','user.taiKhoan', 'vaiTro']
+
     column_labels = {
-        'hoTen': 'Họ tên',
-        'gioiTinh': 'Giới tính',
-        'ngaySinh': 'Ngày sinh',
-        'diaChi': 'Địa chỉ',
-        'SDT': 'Số điện thoại',
-        'eMail': 'Email',
-        'taiKhoan': 'Tài khoản',
-        'matKhau': 'Mật khẩu',
+        'user.hoTen': 'Họ tên',
+        'user.gioiTinh': 'Giới tính',
+        'user.ngaySinh': 'Ngày sinh',
+        'user.diaChi': 'Địa chỉ',
+        'user.SDT': 'Số điện thoại',
+        'user.eMail': 'Email',
+        'user.taiKhoan': 'Tài khoản',
         'vaiTro': 'Vai trò'
     }
-    column_searchable_list = ['hoTen']
-    column_filters = ['vaiTro','gioiTinh']
+    ccolumn_searchable_list = ['user.hoTen', 'user.taiKhoan']
+    column_filters = ['vaiTro', 'user.gioiTinh']
+
+    can_create = False
 
     def on_model_change(self, form, model, is_created):
         if form.matKhau.data:

@@ -4,6 +4,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% set role_name = current_user.NhanVienProfile.vaiTro.name if current_user.NhanVienProfile else '' %}
 
 <style>
     /* --- CSS CỐT LÕI (GIỮ NGUYÊN) --- */
@@ -138,8 +139,8 @@
             <h3 class="welcome-title">Xin chào, {{ current_user.hoTen }}!</h3>
             <div class="welcome-role">
                 <i class="fas fa-id-badge me-2"></i>
-                {% if current_user_role == 'LETAN' %} Lễ Tân
-                {% elif current_user_role == 'THUNGAN' %} Thu Ngân
+                {% if role_name == 'LETAN' %} Lễ Tân
+                {% elif role_name == 'THUNGAN' %} Thu Ngân
                 {% else %} Nhân Viên {% endif %}
             </div>
         </div>
@@ -151,7 +152,7 @@
       <div class="p-5"> <div class="row g-4 justify-content-center">
 
             {# --- GIAO DIỆN LỄ TÂN --- #}
-            {% if current_user_role == 'LETAN' %}
+           {% if role_name == 'LETAN' %}
             <div class="col-md-6">
                 <a href='/dangky/nhanvien' class="action-card">
                     <div class="icon-box">
@@ -164,7 +165,7 @@
             {% endif %}
 
             {# --- GIAO DIỆN THU NGÂN --- #}
-            {% if current_user_role == 'THUNGAN' %}
+            {% if role_name == 'THUNGAN' %}
             <div class="col-md-6">
                 <a href=" "class="action-card">
                     <div class="icon-box">
@@ -187,7 +188,7 @@
             {% endif %}
 
             {# --- TRƯỜNG HỢP CHƯA PHÂN QUYỀN --- #}
-            {% if current_user_role not in ['LETAN', 'THUNGAN'] %}
+            {% if role_name not in ['LETAN', 'THUNGAN'] %}
             <div class="col-12">
                 <div class="alert alert-info alert-custom text-center py-5">
                     <i class="fas fa-user-lock fa-3x mb-3 text-primary opacity-50"></i>

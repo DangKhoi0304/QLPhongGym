@@ -9,7 +9,7 @@ from enum import Enum as RoleEnum, unique
 from flask_login import UserMixin
 import hashlib
 import re
-from sqlalchemy.orm import relationship, Relationship
+from sqlalchemy.orm import relationship, backref
 
 class BaseModel(db.Model):
     __abstract__ = True
@@ -112,11 +112,12 @@ class User(BaseModel, UserMixin):
             return False
 
 
-class NhanVien(User):
+class NhanVien(BaseModel):
     __tablename__ = 'nhanvien'
 
-    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     vaiTro = Column(Enum(UserRole))
+    user_id = Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    user = relationship('User', backref=backref('NhanVienProfile', uselist=False))
 
     def get_VaiTro(self):
         return self.vaiTro
@@ -159,6 +160,20 @@ class DangKyGoiTap(BaseModel):
                 self.ngayDangKy = datetime.now().date()
         self.ngayKetThuc = self.ngayDangKy + timedelta(days=int(self.goi_tap.thoiHan))
 
+class ThanhToan(BaseModel):
+    __tablename__ = 'thanhtoan'
+    soTienTT = Column(Float, nullable=False)
+    ngayThanhToan = Column(Date, default=datetime.now)
+    phuongThuc = Column(String(50), default='Trực Tuyên')
+
+    hoiVien_id = Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    dangKyGoiTap_id = Column(db.Integer, db.ForeignKey('dangkygoitap.id'), nullable=False)
+    nhanVien_id = Column(db.Integer, db.ForeignKey('nhanvien.id'), nullable=True)
+
+    hoi_vien = relationship('User', backref='ThanhToan', lazy=True)
+    dang_ky = relationship('DangKyGoiTap', backref='ThanhToan', lazy=True)
+    nhan_vien = relationship('NhanVien', backref='ThanhToan', lazy=True)
+
 if __name__== '__main__':
     with app.app_context():
         db.create_all()
@@ -171,8 +186,10 @@ if __name__== '__main__':
         # # 3. Lưu vào database
         # db.session.add_all([g1, g2, g3, g4])
         # db.session.commit()
-        # Tạo user test - dùng set_password để hash an toàn
-        # u = NhanVien(
+        # ---------------------------------------------------------
+        # 1. TẠO ADMIN (Nguyễn Đăng Khôi)
+        # ---------------------------------------------------------
+        # u_admin = User(
         #     hoTen="Nguyễn Đăng Khôi",
         #     gioiTinh=True,
         #     ngaySinh=date(2004, 2, 21),
@@ -180,62 +197,66 @@ if __name__== '__main__':
         #     SDT="0762464676",
         #     eMail="khoi123@gmail.com",
         #     taiKhoan='admin',
-        #     vaiTro=UserRole.NGUOIQUANTRI,
+        #     # Không truyền vaiTro vào đây nữa
         #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
         # )
-        # u.set_password('123456')
-        # db.session.add(u)
+        # u_admin.set_password('123456')
+        # db.session.add(u_admin)
+        # db.session.commit()  # Commit để sinh ra ID
         #
+        # # Tạo chức danh Nhân Viên cho Admin
+        # nv_admin = NhanVien(
+        #     user_id=u_admin.id,
+        #     vaiTro=UserRole.NGUOIQUANTRI
+        # )
+        # db.session.add(nv_admin)
         #
-        # nv = NhanVien(
+        # # ---------------------------------------------------------
+        # # 2. TẠO THU NGÂN (Trần Quốc Phong)
+        # # ---------------------------------------------------------
+        # u_phong = User(
         #     hoTen="Trần Quốc Phong",
         #     gioiTinh=True,
         #     ngaySinh=date(2004, 11, 24),
         #     diaChi="Thành phố Hồ Chí Minh",
         #     SDT="0799773010",
         #     eMail="toquocphong123@gmail.com",
-        #     vaiTro=UserRole.THUNGAN,
         #     taiKhoan="quocphong",
         #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
-        # # u = NhanVien(
-        # #     hoTen="Nguyễn Đăng Khôi",
-        # #     gioiTinh=True,
-        # #     ngaySinh=date(2004, 2, 21),
-        # #     diaChi="Thành phố Hồ Chí Minh",
-        # #     SDT="0762464676",
-        # #     eMail="khoi123@gmail.com",
-        # #     taiKhoan='admin',
-        # #     vaiTro=UserRole.NGUOIQUANTRI
-        #  )
-        # # u.set_password('123456')
-        # # db.session.add(u)
+        # )
+        # u_phong.set_password('123456')
+        # db.session.add(u_phong)
+        # db.session.commit()
         #
-        # nv = NhanVien(
+        # # Gán vai trò Thu Ngân
+        # nv_phong = NhanVien(
+        #     user_id=u_phong.id,
+        #     vaiTro=UserRole.THUNGAN
+        # )
+        # db.session.add(nv_phong)
+        #
+        # # ---------------------------------------------------------
+        # # 3. TẠO LỄ TÂN (Tô Quốc Bình)
+        # # ---------------------------------------------------------
+        # u_binh = User(
         #     hoTen="Tô Quốc Bình",
         #     gioiTinh=True,
         #     ngaySinh=date(2004, 11, 24),
         #     diaChi="Thành phố Hồ Chí Minh",
         #     SDT="0733546410",
         #     eMail="toquocbinh123@gmail.com",
-        #     vaiTro=UserRole.LETAN,
         #     taiKhoan="binh",
         #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
         # )
-        # nv.set_password('123456')
-        # db.session.add(nv)
+        # u_binh.set_password('123456')
+        # db.session.add(u_binh)
         # db.session.commit()
         #
-        # nv = NhanVien(
-        #     hoTen="Tô Quốc Bình",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 11, 24),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0733546410",
-        #     eMail="toquocbinh123@gmail.com",
-        #     vaiTro=UserRole.LETAN,
-        #     taiKhoan="binh",
+        # # Gán vai trò Lễ Tân
+        # nv_binh = NhanVien(
+        #     user_id=u_binh.id,
+        #     vaiTro=UserRole.LETAN
         # )
-        # nv.set_password('123456')
-        # db.session.add(nv)
+        # db.session.add(nv_binh)
         # db.session.commit()
 
