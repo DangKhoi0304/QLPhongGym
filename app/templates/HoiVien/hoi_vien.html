@@ -91,8 +91,25 @@
                         <i class="bi bi-person-badge-fill fs-2"></i>
                     </div>
                     <h5 class="card-title fw-bold">Gói Tập Hiện Tại</h5>
-                    <p class="card-text text-muted small">Bạn đang sử dụng gói tập 1 tháng.</p>
-                    <button class="btn btn-outline-success rounded-pill px-4" disabled>Sắp ra mắt</button>
+                    {% if active_package %}
+                        <h4 class="text-primary my-3">{{ active_package.goi_tap.tenGoiTap }}</h4>
+
+                        <div class="text-start d-inline-block">
+                            <p class="mb-1"><small class="text-muted"><i class="bi bi-calendar-check"></i> Đăng ký:</small>
+                                <strong>{{ active_package.ngayDangKy.strftime('%d/%m/%Y') }}</strong>
+                            </p>
+                            <p class="mb-1"><small class="text-muted"><i class="bi bi-calendar-x"></i> Hết hạn:</small>
+                                <strong class="text-danger">{{ active_package.ngayKetThuc.strftime('%d/%m/%Y') }}</strong>
+                            </p>
+                        </div>
+
+                        <div class="mt-3">
+                            <span class="badge bg-success rounded-pill px-3 py-2">Đang hoạt động</span>
+                        </div>
+                    {% else %}
+                        <p class="card-text text-muted small mt-3">Bạn chưa đăng ký gói tập nào.</p>
+                        <a href="{{ url_for('index') }}" class="btn btn-outline-primary rounded-pill px-4">Đăng ký ngay</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

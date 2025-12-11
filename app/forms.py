@@ -41,12 +41,15 @@ class RegisterFormStaff(FlaskForm):
     SDT = StringField('Số điện thoại', validators=[Optional(), Length(max=20)])
     eMail = StringField('Email', validators=[Optional(), Email(), Length(max=255)])
     taiKhoan = StringField('Tài khoản', validators=[DataRequired(), Length(min=3, max=50)])
+    phuongThuc = SelectField('Phương thức thanh toán',
+                             choices=[('Tiền mặt','Tiền mặt'), ('Chuyển khoản', 'Chuyển khoản')],
+                             default='Tiền mặt')
     goiTap = SelectField(
         'Gói tập',
-        choices=[('1','1 tháng'),('3','3 tháng'),('6','6 tháng'),('12','12 tháng')],
+        choices=[('1','1 tháng'),('2','3 tháng'),('3','6 tháng'),('4','1 năm')],
         validators=[DataRequired()]
     )
-    submit = SubmitField('Đăng ký')
+    submit = SubmitField('Đăng ký hội viên')
 
 
 class StaffRegisterForm(RegisterForm):

@@ -164,8 +164,32 @@ def load_goi_tap(page=1):
 
     return GoiTap.query.slice(start, start + page_size).all()
 
-def add_receipt(user_id, goiTap_id, nhanVien_id = None):
+def add_receipt(user_id, goiTap_id, nhanVien_id = None, payment_method="Tiền mặt"):
     try:
+        goi_het_han = DangKyGoiTap.query.filter(
+            DangKyGoiTap.hoiVien_id == user_id,
+            DangKyGoiTap.trangThai == True,  # Đang là 1
+            DangKyGoiTap.ngayKetThuc < datetime.now().date()  # Nhưng đã quá hạn
+        ).all()
+
+        # Nếu tìm thấy, chuyển hết sang False (0)
+        if goi_het_han:
+            for goi in goi_het_han:
+                goi.trangThai = False
+
+            # Lưu thay đổi ngay lập tức để dữ liệu bên dưới query được chính xác
+            db.session.commit()
+
+        goi_tap_dang_su_dung = DangKyGoiTap.query.filter(
+            DangKyGoiTap.hoiVien_id == user_id,
+            DangKyGoiTap.ngayKetThuc >=datetime.now().date(),
+            DangKyGoiTap.trangThai==True
+        ).first()
+        if goi_tap_dang_su_dung:
+            so_ngay = (goi_tap_dang_su_dung.ngayKetThuc - datetime.now().date()).days
+            msg = f"Gói tập hiện tại còn {so_ngay} ngày. Vui lòng sử dụng hết trước khi đăng ký mới!"
+            return False, msg
+
         goiTap = GoiTap.query.get(goiTap_id)
         if not goiTap:
             return False, "Gói tập không tồn tại!!!"
@@ -182,12 +206,10 @@ def add_receipt(user_id, goiTap_id, nhanVien_id = None):
         db.session.add(dk)
         db.session.flush()
 
-        method = "Tiền mặt" if nhanVien_id else "Chuyển khoản"
-
         hoa_don = ThanhToan(
             soTienTT = goiTap.giaTienGoi,
             ngayThanhToan = datetime.now(),
-            phuongThuc = method,
+            phuongThuc=payment_method,
             hoiVien_id = user_id,
             dangKyGoiTap_id = dk.id,
             nhanVien_id = nhanVien_id
@@ -200,3 +222,12 @@ def add_receipt(user_id, goiTap_id, nhanVien_id = None):
         db.session.rollback()
         app.logger.exception("add_Receipt error: %s", ex)
         return False
+
+def get_active_package_by_user_id(user_id):
+    active_package = DangKyGoiTap.query.filter(
+        DangKyGoiTap.hoiVien_id == user_id,
+        DangKyGoiTap.trangThai == True,
+        DangKyGoiTap.ngayKetThuc >= datetime.now().date(),
+    ).order_by(DangKyGoiTap.ngayKetThuc).first()
+
+    return active_package

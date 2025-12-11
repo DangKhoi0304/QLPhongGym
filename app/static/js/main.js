@@ -53,14 +53,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+let crr_goiTap_id = null;
+let paymentModalObj = null;
 
-function dangKyGoiTap(goiTap_id) {
-    if (confirm("Bạn có chắc chắn muốn đăng ký gói tập không? Tiền sẽ trừ thẳng vào ví.") === true) {
+function openPaymentModal(goiTap_id, tenGoi, giaTienGoi, thoiHan){
+    crr_goiTap_id = goiTap_id;
+    document.getElementById('modalTenGoi').innerText = tenGoi;
+    document.getElementById('modalGiaTien').innerText = giaTienGoi.toLocaleString('vi-VN') + ' VNĐ';
+    document.getElementById('modalThoiHan').innerText = thoiHan + ' Ngày';
 
-        fetch('/api/buy_package', {
+    const today = new Date();
+    const endDate = new Date();
+    endDate.setDate(today.getDate() + thoiHan);
+    document.getElementById('modalNgayBatDau').innerText = today.toLocaleDateString('vi-VN');
+    document.getElementById('modalNgayKetThuc').innerText = endDate.toLocaleDateString('vi-VN');
+
+    document.getElementById('step-confirm').style.display = 'block';
+    document.getElementById('step-success').style.display = 'none';
+    document.getElementById('step-error').style.display = 'none';
+
+    const modalElement = document.getElementById('paymentModal');
+    paymentModalObj = new bootstrap.Modal(modalElement);
+    paymentModalObj.show();
+}
+
+function submitPayment() {
+    if (!crr_goiTap_id) return;
+
+    fetch('/api/buy_package', {
             method: 'POST',
             body: JSON.stringify({
-                'goiTap_id': goiTap_id
+                'goiTap_id': crr_goiTap_id
             }),
             headers: {
                 "Content-Type": "application/json"
@@ -69,15 +92,16 @@ function dangKyGoiTap(goiTap_id) {
         .then(res => res.json())
         .then(data => {
             if (data.code === 200) {
-                alert(data.msg);
-                location.reload();
+               document.getElementById('step-confirm').style.display = 'none'; // Ẩn form
+                document.getElementById('step-success').style.display = 'block'; // Hiện thông báo
             } else {
-                alert("Thất Bại: " + data.msg);
+                document.getElementById('step-error').style.display = 'block';
+
+                document.getElementById('errorMessage').innerText = data.msg;
             }
         })
         .catch(err => {
             console.error(err);
             alert("Hệ thống lỗi! Xem console để biết chi tiết.");
         });
-    }
 }

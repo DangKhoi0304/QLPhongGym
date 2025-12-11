@@ -9,14 +9,6 @@
          style="width: 100%; max-width: 600px; border-radius: 12px; background: rgba(255,255,255,0.95);">
         <h2 class="text-center text-primary fw-bold mb-3">Đăng Ký Hội Viên</h2>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-
         <form method="POST" action="">
             {{ form.hidden_tag() }}
 
@@ -63,6 +55,13 @@
                 <div class="col-md-6 mb-3">
                     {{ form.goiTap.label(class="form-label") }}
                     {{ form.goiTap(class="form-select") }}
+                </div>
+
+                <div class="row justify-content-center">
+                    <div class="col-md-6 mb-4">
+                        {{ form.phuongThuc.label(class="form-label") }}
+                        {{ form.phuongThuc(class="form-select") }}
+                    </div>
                 </div>
             </div>
 

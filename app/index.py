@@ -89,7 +89,8 @@ def thong_tin_nhan_vien(taikhoan):
 @app.route('/hoi-vien/<taikhoan>')
 @login_required
 def hoi_vien(taikhoan):
-    return render_template('HoiVien/hoi_vien.html', taikhoan=taikhoan)
+    active_package = dao.get_active_package_by_user_id(current_user.id)
+    return render_template('HoiVien/hoi_vien.html', taikhoan=taikhoan, active_package=active_package)
 
 @app.route("/hoso", methods=['GET', 'POST'])
 @login_required
@@ -311,6 +312,7 @@ def staff_register():
         email = form.eMail.data
         taiKhoan = form.taiKhoan.data
         goiTap = form.goiTap.data
+        phuongThuc = form.phuongThuc.data
 
         matKhau = DEFAULT_PASSWORD
 
@@ -326,40 +328,50 @@ def staff_register():
             return render_template('LeTan/dang_ky_hoi_vien.html', form=form)
 
         # Tạo user — DAO create_user phải chấp nhận goiTap (mã bạn đã cập nhật)
-        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, goiTap)
-        if not user:
-            flash("Tạo tài khoản thất bại. Vui lòng thử lại.", "danger")
-            return render_template('LeTan/dang_ky_hoi_vien.html', form=form)
-
-        # Gửi email xác nhận kèm mật khẩu mặc định
-        if email:
+        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau)
+        if user:
             try:
-                send_mail_gmail(
-                    to_email=email.strip(),
-                    subject="Xác nhận đăng ký hội viên - Phòng Gym",
-                    plain_text=(
-                        f"Xin chào {hoTen},\n\n"
-                        f"Bạn đã được tạo tài khoản tại Phòng Gym.\n"
-                        f"Tài khoản: {taiKhoan}\n"
-                        f"Mật khẩu mặc định: {DEFAULT_PASSWORD}\n\n"
-                        "Vui lòng đăng nhập và đổi mật khẩu ngay lần đầu tiên để bảo mật."
-                    ),
-                    html_text=(
-                        f"<p>Xin chào <b>{hoTen}</b>,</p>"
-                        f"<p>Bạn đã được tạo tài khoản tại Phòng Gym.</p>"
-                        f"<ul>"
-                        f"<li><b>Tài khoản:</b> {taiKhoan}</li>"
-                        f"<li><b>Mật khẩu mặc định:</b> {DEFAULT_PASSWORD}</li>"
-                        f"</ul>"
-                        f"<p>Vui lòng đăng nhập và đổi mật khẩu ngay lần đầu tiên để bảo mật.</p>"
-                    )
+                nhanVien_id = current_user.NhanVienProfile.id if current_user.NhanVienProfile else None
+                success, msg = dao.add_receipt(
+                    user_id=user.id,
+                    goiTap_id=goiTap,
+                    nhanVien_id=nhanVien_id,
+                    payment_method=phuongThuc
                 )
-                flash("Đăng ký thành công! Email xác nhận đã được gửi.", "success")
-            except Exception as ex:
-                app.logger.error("Lỗi gửi mail: %s", ex)
-                flash("Đăng ký thành công, nhưng gửi email thất bại.", "warning")
-        else:
-            flash("Đăng ký thành công!", "success")
+                if success:
+                    flash(f"Đăng ký thành công cho hội viên {hoTen}!", "success")
+                    if email:
+                        try:
+                            send_mail_gmail(
+                                to_email=email.strip(),
+                                subject="Xác nhận đăng ký hội viên - Phòng Gym",
+                                plain_text=(
+                                    f"Xin chào {hoTen},\n\n"
+                                    f"Bạn đã được tạo tài khoản tại Phòng Gym.\n"
+                                    f"Tài khoản: {taiKhoan}\n"
+                                    f"Mật khẩu mặc định: {DEFAULT_PASSWORD}\n\n"
+                                    "Vui lòng đăng nhập và đổi mật khẩu ngay lần đầu tiên để bảo mật."
+                                ),
+                                html_text=(
+                                    f"<p>Xin chào <b>{hoTen}</b>,</p>"
+                                    f"<p>Bạn đã được tạo tài khoản tại Phòng Gym.</p>"
+                                    f"<ul>"
+                                    f"<li><b>Tài khoản:</b> {taiKhoan}</li>"
+                                    f"<li><b>Mật khẩu mặc định:</b> {DEFAULT_PASSWORD}</li>"
+                                    f"</ul>"
+                                    f"<p>Vui lòng đăng nhập và đổi mật khẩu ngay lần đầu tiên để bảo mật.</p>"
+                                )
+                            )
+                            flash("Đăng ký thành công! Email xác nhận đã được gửi.", "success")
+                        except Exception as ex:
+                            app.logger.error("Lỗi gửi mail: %s", ex)
+                            flash("Đăng ký thành công, nhưng gửi email thất bại.", "warning")
+                else:
+                    flash(f"Tạo tài khoản thành công nhưng lỗi đăng ký gói: {msg}", "warning")
+            except Exception as e:
+                flash(f"Lỗi hệ thống khi thanh toán: {str(e)}", "danger")
+            else:
+                flash("Tạo tài khoản thất bại.", "danger")
 
         return redirect(url_for('staff_register'))
 
