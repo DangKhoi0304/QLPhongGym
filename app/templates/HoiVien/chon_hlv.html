@@ -1,0 +1,71 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Chọn Huấn Luyện Viên{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold text-uppercase text-primary">Đội Ngũ Huấn Luyện Viên</h2>
+        <p class="text-muted">Chọn người bạn đồng hành để đạt mục tiêu nhanh hơn</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        {% for hlv in ds_hlv %}
+        <div class="col">
+            <div class="card h-100 shadow-sm border-0 hover-card">
+                <div class="text-center pt-4">
+                     <img src="{{ hlv.user.avatar if hlv.user and hlv.user.avatar else '/static/images/default-avatar.jpg' }}"
+                         class="rounded-circle border border-3 border-primary"
+                         style="width: 120px; height: 120px; object-fit: cover;"
+                         alt="{{ hlv.hoTen }}">
+                </div>
+                
+                <div class="card-body text-center">
+                    <h5 class="card-title fw-bold">{{ hlv.hoTen }}</h5>
+                    <p class="card-text text-muted mb-1"><i class="fa fa-envelope me-1"></i> {{ hlv.eMail }}</p>
+                    <p class="card-text text-muted"><i class="fa fa-phone me-1"></i> {{ hlv.SDT }}</p>
+                    
+                    <hr class="my-3">
+                    
+                    <form method="POST" action="{{ url_for('choose_pt') }}"
+                          onsubmit="return confirm('Bạn có chắc chắn muốn chọn huấn luyện viên {{ hlv.hoTen }} không?');">
+                        {{ form.csrf_token }}
+                        
+                        <input type="hidden" name="hlv_id" value="{{ hlv.id }}">
+                        
+                        <button type="submit" class="btn btn-outline-primary w-100 rounded-pill">
+                            <i class="fa fa-check me-2"></i>Chọn HLV này
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if not ds_hlv %}
+    <div class="text-center mt-5">
+        <p class="text-muted">Hiện chưa có huấn luyện viên nào khả dụng.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .hover-card:hover {
+        transform: translateY(-5px);
+        transition: transform 0.3s ease;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+</style>
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends "layout/base.html" %}
+
+{% block title %}Tạo Lịch Tập{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<div class="container mt-4">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Thêm Bài Tập Mới</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{{ member.avatar if member.avatar else '/static/images/default-avatar.jpg' }}"
+                             class="rounded-circle me-3" width="50" height="50" style="object-fit: cover;">
+                        <div>
+                            <h6 class="mb-0 fw-bold">{{ member.hoTen }}</h6>
+                            <small class="text-muted">Đang lên kế hoạch...</small>
+                        </div>
+                    </div>
+                    <hr>
+
+                    <form method="POST">
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.baiTap.label(class="form-label fw-bold") }}
+                            {{ form.baiTap(class="form-control", placeholder="VD: Squat, Cardio...") }}
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                {{ form.soHiep.label(class="form-label fw-bold") }}
+                                {{ form.soHiep(class="form-control", min="1") }}
+                            </div>
+                            <div class="col-6">
+                                {{ form.soLan.label(class="form-label fw-bold") }}
+                                {{ form.soLan(class="form-control", min="1") }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold text-primary">Chọn ngày tập</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="fas fa-calendar-alt text-primary"></i></span>
+                                {{ form.ngayTap(class="form-control", id="datepicker", placeholder="Chạm để chọn nhiều ngày...") }}
+                            </div>
+                            <div class="form-text text-muted small">
+                                Bạn có thể chọn nhiều ngày cùng lúc trên lịch.
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary fw-bold py-2">
+                                <i class="fas fa-save me-2"></i> Lưu Lịch Tập
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow border-0">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list-ul me-2"></i>Lịch Đã Lưu</h5>
+                    <span class="badge bg-light text-dark">{{ schedule|length }} bài</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Bài tập</th>
+                                    <th>Chi tiết</th>
+                                    <th>Lịch tập (Thực tế)</th>
+                                    <th class="text-center" style="width: 120px;">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in schedule %}
+                                <tr>
+                                    <td class="ps-3 fw-bold text-primary">{{ item.baiTap }}</td>
+                                    <td>
+                                        <div class="badge bg-secondary">{{ item.soHiep }} Hiệp</div>
+                                        <div class="badge bg-secondary mt-1">{{ item.soLan }} Lần</div>
+                                    </td>
+                                    <td>
+                                        {% set days = item.ngayTap.split(',') %}
+                                        {% for day in days %}
+                                            <div class="mb-1 small">
+                                                <i class="fas fa-calendar-check text-success me-1"></i>
+                                                {{ day.strip() }}
+                                            </div>
+                                        {% endfor %}
+                                    </td>
+
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <a href="{{ url_for('edit_schedule_item', id=item.id) }}"
+                                               class="btn btn-warning btn-sm text-dark shadow-sm"
+                                               title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+
+                                            <a href="{{ url_for('delete_schedule_item', id=item.id) }}"
+                                               class="btn btn-danger btn-sm shadow-sm"
+                                               onclick="return confirm('Bạn chắc chắn muốn xóa bài {{ item.baiTap }}?');"
+                                               title="Xóa">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-5 text-muted">
+                                        <i class="fas fa-clipboard-list fa-3x mb-3 opacity-25"></i>
+                                        <p>Chưa có lịch tập nào cho hội viên này.</p>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+
+<script>
+    flatpickr("#datepicker", {
+        mode: "multiple",       // Cho phép chọn nhiều ngày
+        dateFormat: "d-m-Y",    // Định dạng ngày Việt Nam
+        locale: "vn",           // Ngôn ngữ tiếng Việt
+        minDate: "today",       // Không cho chọn ngày quá khứ
+        disableMobile: "true"   // Giữ giao diện đẹp trên điện thoại
+    });
+</script>
+{% endblock %}

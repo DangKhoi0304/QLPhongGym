@@ -1,73 +1,176 @@
-{% extends 'layoutNhanVien/base.html' %}
+{% extends "layout/base.html" %}
 
-{% block title %}Đăng Ký{% endblock %}
+{% block title %}Đăng Ký Hội Viên Mới{% endblock %}
 
 {% block content %}
-<div class="vh-100 d-flex justify-content-center align-items-center"
-     style="background: linear-gradient(to right, #4facfe, #00f2fe);">
-    <div class="card shadow-lg p-4"
-         style="width: 100%; max-width: 600px; border-radius: 12px; background: rgba(255,255,255,0.95);">
-        <h2 class="text-center text-primary fw-bold mb-3">Đăng Ký Hội Viên</h2>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        <form method="POST" action="">
-            {{ form.hidden_tag() }}
+<style>
+    .register-bg {
+        background-color: #f3f4f6;
+        min-height: 100vh;
+        padding: 20px 0; /* Giảm padding trên dưới */
+    }
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    {{ form.hoTen.label(class="form-label") }}
-                    {{ form.hoTen(class="form-control") }}
-                </div>
-                <div class="col-md-6 mb-3">
-                    {{ form.gioiTinh.label(class="form-label") }}
-                    {{ form.gioiTinh(class="form-select") }}
-                </div>
+    .card-register {
+        border: none;
+        border-radius: 16px; /* Bo góc nhỏ hơn xíu cho gọn */
+        box-shadow: 0 5px 25px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    .card-header-custom {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px; /* Giảm padding header */
+        color: white;
+        text-align: center;
+    }
+
+    .section-title {
+        font-size: 0.85rem; /* Chữ nhỏ hơn xíu */
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #6c757d;
+        letter-spacing: 0.5px;
+        margin-bottom: 15px;
+        margin-top: 5px;
+        border-left: 3px solid #764ba2;
+        padding-left: 8px;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        padding: 10px 12px; /* Input gọn hơn */
+        font-size: 0.95rem;
+        border: 1px solid #e2e8f0;
+        background-color: #f8fafc;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: #764ba2;
+        box-shadow: 0 0 0 2px rgba(118, 75, 162, 0.1);
+        background-color: #fff;
+    }
+
+    .input-group-text {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-right: none;
+        color: #764ba2;
+        font-size: 0.9rem;
+    }
+
+    .btn-register {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 50px;
+        padding: 10px 25px;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+
+    /* Label nhỏ lại chút */
+    .form-label {
+        margin-bottom: 0.3rem;
+        font-size: 0.85rem !important;
+    }
+</style>
+
+<div class="register-bg">
+    <div class="container">
+        <div class="card card-register mx-auto" style="max-width: 700px;">
+            <div class="card-header-custom">
+                <h4 class="fw-bold mb-1"><i class="fas fa-user-plus me-2"></i>Đăng Ký Hội Viên</h4>
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    {{ form.ngaySinh.label(class="form-label") }}
-                    {{ form.ngaySinh(class="form-control", type="date") }}
-                </div>
-                <div class="col-md-6 mb-3">
-                    {{ form.diaChi.label(class="form-label") }}
-                    {{ form.diaChi(class="form-control") }}
-                </div>
-            </div>
+            <div class="card-body p-4"> <form method="POST" action="">
+                    {{ form.hidden_tag() }}
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    {{ form.SDT.label(class="form-label") }}
-                    {{ form.SDT(class="form-control") }}
-                </div>
-                <div class="col-md-6 mb-3">
-                    {{ form.eMail.label(class="form-label") }}
-                    {{ form.eMail(class="form-control") }}
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    {{ form.taiKhoan.label(class="form-label") }}
-                    {{ form.taiKhoan(class="form-control") }}
-                </div>
-
-                <!-- hiển thị gói tập -->
-                <div class="col-md-6 mb-3">
-                    {{ form.goiTap.label(class="form-label") }}
-                    {{ form.goiTap(class="form-select") }}
-                </div>
-
-                <div class="row justify-content-center">
-                    <div class="col-md-6 mb-4">
-                        {{ form.phuongThuc.label(class="form-label") }}
-                        {{ form.phuongThuc(class="form-select") }}
+                    <h6 class="section-title">1. Thông tin cá nhân</h6>
+                    <div class="row g-3 mb-3"> <div class="col-md-6">
+                            <label class="form-label fw-bold text-muted">Họ và Tên</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                {{ form.hoTen(class="form-control", placeholder="Họ tên hội viên") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-muted">Giới Tính</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-venus-mars"></i></span>
+                                {{ form.gioiTinh(class="form-select") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-muted">Ngày Sinh</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-birthday-cake"></i></span>
+                                {{ form.ngaySinh(class="form-control", type="date") }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold text-muted">Địa Chỉ</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                                {{ form.diaChi(class="form-control", placeholder="Địa chỉ") }}
+                            </div>
+                        </div>
                     </div>
-                </div>
+
+                    <h6 class="section-title mt-4">2. Liên hệ & Tài khoản</h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold text-muted">SĐT</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                {{ form.SDT(class="form-control", placeholder="09xxxxxxxx") }}
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold text-muted">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                {{ form.eMail(class="form-control", placeholder="email@example.com") }}
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold text-muted">Tên Đăng Nhập (Username)</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-user-circle"></i></span>
+                                {{ form.taiKhoan(class="form-control", placeholder="Tên đăng nhập hệ thống") }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="section-title mt-4">3. Dịch vụ</h6>
+                    <div class="p-3 rounded-3 bg-light border border-dashed">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-primary">Gói Tập</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white text-primary"><i class="fas fa-dumbbell"></i></span>
+                                    {{ form.goiTap(class="form-select fw-bold text-primary") }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-success">Thanh Toán</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white text-success"><i class="fas fa-money-bill-wave"></i></span>
+                                    {{ form.phuongThuc(class="form-select fw-bold text-success") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{{ url_for('thong_tin_nhan_vien', taikhoan=current_user.taiKhoan) }}" class="btn btn-sm btn-light border px-3">Hủy</a>
+                        <button type="submit" class="btn btn-register btn-primary text-white shadow-sm">
+                            <i class="fas fa-check me-2"></i>Đăng Ký
+                        </button>
+                    </div>
+                </form>
             </div>
-
-
-            <button type="submit" class="btn btn-primary btn-lg w-100">{{ form.submit.label.text }}</button>
-        </form>
+        </div>
     </div>
 </div>
 {% endblock %}

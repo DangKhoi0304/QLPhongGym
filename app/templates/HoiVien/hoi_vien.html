@@ -3,8 +3,6 @@
 {% block title %}Hội Viên Dashboard{% endblock %}
 
 {% block content %}
-</head>
-
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
     .welcome-card {
@@ -20,10 +18,6 @@
         align-items: center;
         justify-content: space-between;
     }
-    .welcome-avatar i {
-        font-size: 5rem;
-        opacity: 0.8;
-    }
     .role-badge {
         background: rgba(255,255,255,0.2);
         display: inline-block;
@@ -31,7 +25,6 @@
         border-radius: 50px;
         backdrop-filter: blur(5px);
     }
-
     .hover-card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
@@ -39,7 +32,6 @@
         transform: translateY(-5px);
         box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
     }
-
     .icon-box {
         width: 60px;
         height: 60px;
@@ -51,95 +43,117 @@
     }
     .bg-light-primary { background-color: rgba(13, 110, 253, 0.1); }
     .bg-light-success { background-color: rgba(25, 135, 84, 0.1); }
-    .bg-light-warning { background-color: rgba(255, 193, 7, 0.1); }
+    .bg-light-warning { background-color: rgba(255, 193, 7, 0.1); } /* Màu vàng cho HLV */
 </style>
+
 <body>
 
 <header>
     <div class="container py-5">
 
-    <div class="welcome-card mb-5 animate__animated animate__fadeInDown">
-        <div class="welcome-header">
-            <div class="welcome-text">
-                <h1 class="display-5">Xin chào, {{ current_user.hoTen }}!</h1>
-                <p class="opacity-75 mb-0">Chúc bạn có một buổi tập luyện tràn đầy năng lượng.</p>
-                <div class="role-badge mt-3">
-                    <i class="bi bi-star-fill text-warning"></i> Hội Viên
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="mb-4">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="welcome-card mb-5 animate__animated animate__fadeInDown">
+            <div class="welcome-header">
+                <div class="welcome-text">
+                    <h1 class="display-5">Xin chào, {{ current_user.hoTen }}!</h1>
+                    <p class="opacity-75 mb-0">Chúc bạn có một buổi tập luyện tràn đầy năng lượng.</p>
+                    <div class="role-badge mt-3">
+                        <i class="bi bi-star-fill text-warning"></i> Hội Viên
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm hover-card">
-                <div class="card-body text-center p-4">
-                    <div class="icon-box bg-light-primary text-primary mb-3">
-                        <i class="bi bi-person fs-2"></i>
-                    </div>
-                    <h5 class="card-title fw-bold">Hồ Sơ Của Tôi</h5>
-                    <p class="card-text text-muted small">Xem và quản lý thông tin cá nhân của bạn.</p>
-                    <a href="{{ url_for('ho_so') }}" class="btn btn-outline-primary rounded-pill px-4">Xem Chi Tiết</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm hover-card">
-                <div class="card-body text-center p-4">
-                    <div class="icon-box bg-light-success text-success mb-3">
-                        <i class="bi bi-person-badge-fill fs-2"></i>
-                    </div>
-                    <h5 class="card-title fw-bold">Gói Tập Hiện Tại</h5>
-                    {% if active_package %}
-                        <h4 class="text-primary my-3">{{ active_package.goi_tap.tenGoiTap }}</h4>
-
-                        <div class="text-start d-inline-block">
-                            <p class="mb-1"><small class="text-muted"><i class="bi bi-calendar-check"></i> Đăng ký:</small>
-                                <strong>{{ active_package.ngayDangKy.strftime('%d/%m/%Y') }}</strong>
-                            </p>
-                            <p class="mb-1"><small class="text-muted"><i class="bi bi-calendar-x"></i> Hết hạn:</small>
-                                <strong class="text-danger">{{ active_package.ngayKetThuc.strftime('%d/%m/%Y') }}</strong>
-                            </p>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-box bg-light-primary text-primary mb-3">
+                            <i class="bi bi-person fs-2"></i>
                         </div>
-
-                        <div class="mt-3">
-                            <span class="badge bg-success rounded-pill px-3 py-2">Đang hoạt động</span>
-                        </div>
-                    {% else %}
-                        <p class="card-text text-muted small mt-3">Bạn chưa đăng ký gói tập nào.</p>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-primary rounded-pill px-4">Đăng ký ngay</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-         <div class="col-md-4">
-            <div class="card h-100 border-0 shadow-sm hover-card">
-                <div class="card-body text-center p-4">
-                    <div class="icon-box bg-light-success text-success mb-3">
-                        <i class="bi bi-calendar-check fs-2"></i>
+                        <h5 class="card-title fw-bold">Hồ Sơ Của Tôi</h5>
+                        <p class="card-text text-muted small">Xem và quản lý thông tin cá nhân của bạn.</p>
+                        <a href="{{ url_for('ho_so') }}" class="btn btn-outline-primary rounded-pill px-4">Xem Chi Tiết</a>
                     </div>
-                    <h5 class="card-title fw-bold">Lịch Tập Luyện</h5>
-                    <p class="card-text text-muted small">Xem các bài tập và lịch tập.</p>
-                    <button class="btn btn-outline-success rounded-pill px-4" disabled>Sắp ra mắt</button>
                 </div>
             </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-box bg-light-success text-success mb-3">
+                            <i class="bi bi-person-badge-fill fs-2"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Gói Tập Hiện Tại</h5>
+                        {% if active_package %}
+                            <h4 class="text-primary my-3">{{ active_package.goi_tap.tenGoiTap }}</h4>
+
+                            <div class="text-start d-inline-block">
+                                <p class="mb-1"><small class="text-muted"><i class="bi bi-calendar-check"></i> Đăng ký:</small>
+                                    <strong>{{ active_package.ngayDangKy.strftime('%d/%m/%Y') }}</strong>
+                                </p>
+                                <p class="mb-1"><small class="text-muted"><i class="bi bi-calendar-x"></i> Hết hạn:</small>
+                                    <strong class="text-danger">{{ active_package.ngayKetThuc.strftime('%d/%m/%Y') }}</strong>
+                                </p>
+                            </div>
+
+                            <div class="mt-3">
+                                <span class="badge bg-success rounded-pill px-3 py-2">Đang hoạt động</span>
+                            </div>
+                        {% else %}
+                            <p class="card-text text-muted small mt-3">Bạn chưa đăng ký gói tập nào.</p>
+                            <a href="{{ url_for('index') }}" class="btn btn-outline-primary rounded-pill px-4">Đăng ký ngay</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm hover-card">
+                    <div class="card-body text-center p-4">
+                        <div class="icon-box bg-light-warning text-warning mb-3">
+                            <i class="bi bi-lightning-charge-fill fs-2"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Huấn Luyện & Lịch Tập</h5>
+
+                        {% if active_package %}
+                            {% if active_package.huanLuyenVien_id %}
+                                <div class="mt-3">
+                                    <p class="text-muted small mb-2">HLV: <strong>{{ active_package.huan_luyen_vien.hoTen }}</strong></p>
+                                    <a href="{{ url_for('member_view_schedule') }}" class="btn btn-primary rounded-pill px-4 w-100">
+                                        <i class="bi bi-calendar3 me-2"></i>Xem Lịch Tập
+                                    </a>
+                                </div>
+
+                            {% else %}
+                                <p class="card-text text-muted small mt-3">Bạn chưa có HLV hướng dẫn.</p>
+                                <a href="{{ url_for('choose_pt') }}" class="btn btn-outline-warning rounded-pill px-4 w-100">
+                                    <i class="bi bi-person-plus-fill me-2"></i>Chọn HLV Ngay
+                                </a>
+                            {% endif %}
+
+                        {% else %}
+                            <p class="card-text text-muted small mt-3">Cần có gói tập để chọn HLV.</p>
+                            <button class="btn btn-secondary rounded-pill px-4" disabled>Chưa khả dụng</button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
         </div>
-
     </div>
-</div>
-
-    <!-- Hiển thị thông báo -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }}">
-        <strong>{{ message }}</strong>
-    </div>
-    {% endfor %}
-    {% endif %}
-    {% endwith %}
 </header>
 
 </body>

@@ -11,15 +11,18 @@ import hashlib
 import re
 from sqlalchemy.orm import relationship, backref
 
+
 class BaseModel(db.Model):
     __abstract__ = True
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
+
 class UserRole(RoleEnum):
     NGUOIQUANTRI = 1
     THUNGAN = 2
     LETAN = 3
+    HUANLUYENVIEN = 4
 
 
 class User(BaseModel, UserMixin):
@@ -35,6 +38,7 @@ class User(BaseModel, UserMixin):
     taiKhoan = Column(String(50), unique=True, nullable=False)
     matKhau = Column(String(255), nullable=False)
     avatar = Column(String(255), nullable=False)
+
     # goiTap = Column(Integer, nullable=True)
 
     def __str__(self):
@@ -47,7 +51,8 @@ class User(BaseModel, UserMixin):
     def get_username(self):
         # trả tên hiển thị (bạn có thể đổi thành self.taiKhoan nếu muốn)
         return self.hoTen
-    def update_profile(self, hoTen, gioiTinh,SDT, ngaySinh, diaChi):
+
+    def update_profile(self, hoTen, gioiTinh, SDT, ngaySinh, diaChi):
         try:
             # 1. Cập nhật thông tin cơ bản
             if hoTen: self.hoTen = hoTen
@@ -72,7 +77,7 @@ class User(BaseModel, UserMixin):
             db.session.rollback()
             print(f"Lỗi update: {e}")
             return False, "Lỗi!!!"
-        
+
     @property
     def username(self):
         return self.get_username()
@@ -122,6 +127,7 @@ class NhanVien(BaseModel):
     def get_VaiTro(self):
         return self.vaiTro
 
+
 class HuanLuyenVien(db.Model):
     __tablename__ = 'huanluyenvien'
     id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)  # <-- PK = FK users.id
@@ -130,6 +136,7 @@ class HuanLuyenVien(db.Model):
     eMail = db.Column(db.String(255))
 
     user = db.relationship('User', backref=db.backref('huanluyenvien', uselist=False))
+
 
 class GoiTap(BaseModel):
     __tablename__ = 'goitap'
@@ -142,6 +149,7 @@ class GoiTap(BaseModel):
     def __str__(self):
         return f"{self.tenGoiTap} ({self.thoiHan} ngày)"
 
+
 class DangKyGoiTap(BaseModel):
     __tablename__ = 'dangkygoitap'
 
@@ -150,15 +158,27 @@ class DangKyGoiTap(BaseModel):
     trangThai = Column(Boolean, default=True)  # True: Đang kích hoạt, False: Hết hạn/Hủy
     hoiVien_id = Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     goiTap_id = Column(db.Integer, db.ForeignKey('goitap.id'), nullable=False)
-
-    hoi_vien= relationship('User', backref='DangKyGoiTap', lazy=True)
+    huanLuyenVien_id = Column(db.Integer, db.ForeignKey('huanluyenvien.id'), nullable=True)
+    hoi_vien = relationship('User', backref='DangKyGoiTap', lazy=True)
     goi_tap = relationship('GoiTap', backref='DangKyGoiTap', lazy=True)
+    huan_luyen_vien = relationship('HuanLuyenVien', backref='ds_hoi_vien_dang_ky', lazy=True)
 
     def tinh_ngay_het_han(self):
         if self.goi_tap and self.goi_tap.thoiHan:
             if not self.ngayDangKy:
                 self.ngayDangKy = datetime.now().date()
         self.ngayKetThuc = self.ngayDangKy + timedelta(days=int(self.goi_tap.thoiHan))
+
+
+class LichTap(BaseModel):
+    __tablename__ = 'lichtap'
+
+    baiTap = Column(String(255), nullable=False)  # Squat, Bench Press...
+    soHiep = Column(Integer, nullable=False)
+    soLan = Column(Integer, nullable=False)  # Số lần/hiệp
+    ngayTap = Column(String(100), nullable=False)  # "Thứ 2, 4, 6"
+    dangKyGoiTap_id = Column(db.Integer, db.ForeignKey('dangkygoitap.id'), nullable=False)
+    dang_ky = relationship('DangKyGoiTap', backref='ds_lich_tap', lazy=True)
 
 class ThanhToan(BaseModel):
     __tablename__ = 'thanhtoan'
@@ -174,89 +194,120 @@ class ThanhToan(BaseModel):
     dang_ky = relationship('DangKyGoiTap', backref='ThanhToan', lazy=True)
     nhan_vien = relationship('NhanVien', backref='ThanhToan', lazy=True)
 
-if __name__== '__main__':
+
+if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        #
-        # g1 = GoiTap(tenGoiTap="Gói 2 Tháng", thoiHan=30, giaTienGoi=500000)
-        # g2 = GoiTap(tenGoiTap="Gói 4 Tháng", thoiHan=90, giaTienGoi=1200000)
-        # g3 = GoiTap(tenGoiTap="Gói 8 Tháng", thoiHan=180, giaTienGoi=2000000)
-        # g4 = GoiTap(tenGoiTap="Gói 2 Năm", thoiHan=365, giaTienGoi=3500000)
-        #
-        # # 3. Lưu vào database
-        # db.session.add_all([g1, g2, g3, g4])
-        # db.session.commit()
+
+        g1 = GoiTap(tenGoiTap="Gói 2 Tháng", thoiHan=30, giaTienGoi=500000)
+        g2 = GoiTap(tenGoiTap="Gói 4 Tháng", thoiHan=90, giaTienGoi=1200000)
+        g3 = GoiTap(tenGoiTap="Gói 8 Tháng", thoiHan=180, giaTienGoi=2000000)
+        g4 = GoiTap(tenGoiTap="Gói 2 Năm", thoiHan=365, giaTienGoi=3500000)
+
+        # 3. Lưu vào database
+        db.session.add_all([g1, g2, g3, g4])
+        db.session.commit()
         # ---------------------------------------------------------
         # 1. TẠO ADMIN (Nguyễn Đăng Khôi)
         # ---------------------------------------------------------
-        # u_admin = User(
-        #     hoTen="Nguyễn Đăng Khôi",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 2, 21),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0762464676",
-        #     eMail="khoi123@gmail.com",
-        #     taiKhoan='admin',
-        #     # Không truyền vaiTro vào đây nữa
-        #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
-        # )
-        # u_admin.set_password('123456')
-        # db.session.add(u_admin)
-        # db.session.commit()  # Commit để sinh ra ID
-        #
-        # # Tạo chức danh Nhân Viên cho Admin
-        # nv_admin = NhanVien(
-        #     user_id=u_admin.id,
-        #     vaiTro=UserRole.NGUOIQUANTRI
-        # )
-        # db.session.add(nv_admin)
-        #
-        # # ---------------------------------------------------------
-        # # 2. TẠO THU NGÂN (Trần Quốc Phong)
-        # # ---------------------------------------------------------
-        # u_phong = User(
-        #     hoTen="Trần Quốc Phong",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 11, 24),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0799773010",
-        #     eMail="toquocphong123@gmail.com",
-        #     taiKhoan="quocphong",
-        #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
-        # )
-        # u_phong.set_password('123456')
-        # db.session.add(u_phong)
-        # db.session.commit()
-        #
-        # # Gán vai trò Thu Ngân
-        # nv_phong = NhanVien(
-        #     user_id=u_phong.id,
-        #     vaiTro=UserRole.THUNGAN
-        # )
-        # db.session.add(nv_phong)
-        #
-        # # ---------------------------------------------------------
-        # # 3. TẠO LỄ TÂN (Tô Quốc Bình)
-        # # ---------------------------------------------------------
-        # u_binh = User(
-        #     hoTen="Tô Quốc Bình",
-        #     gioiTinh=True,
-        #     ngaySinh=date(2004, 11, 24),
-        #     diaChi="Thành phố Hồ Chí Minh",
-        #     SDT="0733546410",
-        #     eMail="toquocbinh123@gmail.com",
-        #     taiKhoan="binh",
-        #     avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
-        # )
-        # u_binh.set_password('123456')
-        # db.session.add(u_binh)
-        # db.session.commit()
-        #
-        # # Gán vai trò Lễ Tân
-        # nv_binh = NhanVien(
-        #     user_id=u_binh.id,
-        #     vaiTro=UserRole.LETAN
-        # )
-        # db.session.add(nv_binh)
-        # db.session.commit()
+        u_admin = User(
+            hoTen="Nguyễn Đăng Khôi",
+            gioiTinh=True,
+            ngaySinh=date(2004, 2, 21),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0762464676",
+            eMail="khoi123@gmail.com",
+            taiKhoan='admin',
+            # Không truyền vaiTro vào đây nữa
+            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        )
+        u_admin.set_password('123456')
+        db.session.add(u_admin)
+        db.session.commit()  # Commit để sinh ra ID
 
+        # Tạo chức danh Nhân Viên cho Admin
+        nv_admin = NhanVien(
+            user_id=u_admin.id,
+            vaiTro=UserRole.NGUOIQUANTRI
+        )
+        db.session.add(nv_admin)
+
+        # ---------------------------------------------------------
+        # 2. TẠO THU NGÂN (Trần Quốc Phong)
+        # ---------------------------------------------------------
+        u_phong = User(
+            hoTen="Trần Quốc Phong",
+            gioiTinh=True,
+            ngaySinh=date(2004, 11, 24),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0799773010",
+            eMail="toquocphong123@gmail.com",
+            taiKhoan="quocphong",
+            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        )
+        u_phong.set_password('123456')
+        db.session.add(u_phong)
+        db.session.commit()
+
+        # Gán vai trò Thu Ngân
+        nv_phong = NhanVien(
+            user_id=u_phong.id,
+            vaiTro=UserRole.THUNGAN
+        )
+        db.session.add(nv_phong)
+
+        # ---------------------------------------------------------
+        # 3. TẠO LỄ TÂN (Tô Quốc Bình)
+        # ---------------------------------------------------------
+        u_binh = User(
+            hoTen="Tô Quốc Bình",
+            gioiTinh=True,
+            ngaySinh=date(2004, 11, 24),
+            diaChi="Thành phố Hồ Chí Minh",
+            SDT="0733546410",
+            eMail="toquocbinh123@gmail.com",
+            taiKhoan="binh",
+            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        )
+        u_binh.set_password('123456')
+        db.session.add(u_binh)
+        db.session.commit()
+
+        # Gán vai trò Lễ Tân
+        nv_binh = NhanVien(
+            user_id=u_binh.id,
+            vaiTro=UserRole.LETAN
+        )
+        db.session.add(nv_binh)
+        db.session.commit()
+
+        # ---------------------------------------------------------
+        # 4. TẠO HUẤN LUYỆN VIÊN (Lý Đức)
+        # ---------------------------------------------------------
+        # Bước 1: Tạo User
+        u_hlv = User(
+            hoTen="Lý Đức",
+            gioiTinh=True,
+            ngaySinh=date(1990, 6, 15),
+            diaChi="Quận 1, TP.HCM",
+            SDT="0912345678",
+            eMail="lyduc.gym@gmail.com",
+            taiKhoan="hlv1",
+            avatar='https://res.cloudinary.com/dkolhuqlp/image/upload/v1757611287/bhwvisacx76eb4aluzmw.jpg'
+        )
+        u_hlv.set_password('123456')  # Mật khẩu test
+        db.session.add(u_hlv)
+        db.session.commit()  # Commit để có ID
+
+        # Bước 2: Thêm vào bảng HuanLuyenVien
+        hlv_profile = HuanLuyenVien(
+            id=u_hlv.id,  # Lấy ID của user vừa tạo
+            hoTen=u_hlv.hoTen,
+            SDT=u_hlv.SDT,
+            eMail=u_hlv.eMail
+        )
+        db.session.add(hlv_profile)
+        nv_hlv = NhanVien(user_id=u_hlv.id, vaiTro=UserRole.HUANLUYENVIEN)
+        db.session.add(nv_hlv)
+
+        db.session.commit()

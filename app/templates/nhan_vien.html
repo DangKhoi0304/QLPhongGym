@@ -1,10 +1,16 @@
-{% extends 'layoutNhanVien/base.html' %}
+{% extends "layout/base.html" %}
 
 {% block title %}Nhân Viên Dashboard{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+{# Logic xác định role name #}
 {% set role_name = current_user.NhanVienProfile.vaiTro.name if current_user.NhanVienProfile else '' %}
+{# Nếu không phải NhanVien mà là HLV (dựa vào bảng huanluyenvien), gán role thủ công #}
+{% if not role_name and current_user.huanluyenvien %}
+    {% set role_name = 'HUANLUYENVIEN' %}
+{% endif %}
 
 <style>
     /* --- CSS CỐT LÕI (GIỮ NGUYÊN) --- */
@@ -19,7 +25,7 @@
     .container-card {
         padding-top: 1rem;
         padding-bottom: 3rem;
-        flex: 1; /* Đẩy footer xuống đáy nếu nội dung ngắn */
+        flex: 1;
     }
 
     .card-main {
@@ -29,7 +35,7 @@
         background-color: #fff;
         overflow: hidden;
         max-width: 1000px;
-        margin: 0 auto; /* Căn giữa card */
+        margin: 0 auto;
     }
 
     /* --- PHẦN HEADER CHÀO MỪNG (Banner Tím) --- */
@@ -40,7 +46,6 @@
         position: relative;
     }
 
-    /* Trang trí thêm cho banner đỡ trống */
     .welcome-section::after {
         content: '';
         position: absolute;
@@ -87,7 +92,6 @@
         overflow: hidden;
     }
 
-    /* Hiệu ứng hover đẹp hơn */
     .action-card:hover {
         transform: translateY(-8px);
         box-shadow: 0 20px 40px rgba(118, 75, 162, 0.15);
@@ -120,7 +124,6 @@
         line-height: 1.4;
     }
 
-    /* Alert styles */
     .alert-custom {
         border-radius: 12px;
         border: none;
@@ -141,6 +144,7 @@
                 <i class="fas fa-id-badge me-2"></i>
                 {% if role_name == 'LETAN' %} Lễ Tân
                 {% elif role_name == 'THUNGAN' %} Thu Ngân
+                {% elif role_name == 'HUANLUYENVIEN' %} Huấn Luyện Viên
                 {% else %} Nhân Viên {% endif %}
             </div>
         </div>
@@ -149,7 +153,8 @@
         </div>
       </div>
 
-      <div class="p-5"> <div class="row g-4 justify-content-center">
+      <div class="p-5">
+        <div class="row g-4 justify-content-center">
 
             {# --- GIAO DIỆN LỄ TÂN --- #}
            {% if role_name == 'LETAN' %}
@@ -167,7 +172,7 @@
             {# --- GIAO DIỆN THU NGÂN --- #}
             {% if role_name == 'THUNGAN' %}
             <div class="col-md-6">
-                <a href=" "class="action-card">
+                <a href="#" class="action-card">
                     <div class="icon-box">
                         <i class="fas fa-file-invoice-dollar"></i>
                     </div>
@@ -175,9 +180,8 @@
                     <span class="action-desc">Xử lý hóa đơn chờ và xác nhận thu phí hội viên</span>
                 </a>
             </div>
-
             <div class="col-md-6">
-                <a href="" class="action-card">
+                <a href="#" class="action-card">
                     <div class="icon-box">
                         <i class="fas fa-clock-rotate-left"></i>
                     </div>
@@ -187,13 +191,36 @@
             </div>
             {% endif %}
 
+            {# --- GIAO DIỆN HUẤN LUYỆN VIÊN (MỚI THÊM) --- #}
+            {% if role_name == 'HUANLUYENVIEN' %}
+            <div class="col-md-6">
+                <a href="{{ url_for('danh_sach_hoi_vien') }}" class="action-card">
+                    <div class="icon-box">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <span class="action-title">Quản Lý Tập Luyện</span>
+                    <span class="action-desc">Xem danh sách hội viên và lên lịch tập chi tiết</span>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <a href="#" class="action-card">
+                    <div class="icon-box">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <span class="action-title">Lịch Của Tôi</span>
+                    <span class="action-desc">Xem lịch dạy và thống kê giờ dạy trong tháng (Sắp có)</span>
+                </a>
+            </div>
+            {% endif %}
+
+
             {# --- TRƯỜNG HỢP CHƯA PHÂN QUYỀN --- #}
-            {% if role_name not in ['LETAN', 'THUNGAN'] %}
+            {% if role_name not in ['LETAN', 'THUNGAN', 'HUANLUYENVIEN'] %}
             <div class="col-12">
                 <div class="alert alert-info alert-custom text-center py-5">
                     <i class="fas fa-user-lock fa-3x mb-3 text-primary opacity-50"></i>
                     <h4>Chưa phân quyền</h4>
-                    <p class="mb-0">Tài khoản này hiện chưa có chức năng Lễ tân hoặc Thu ngân.</p>
+                    <p class="mb-0">Tài khoản này hiện chưa có chức năng cụ thể.</p>
                 </div>
             </div>
             {% endif %}

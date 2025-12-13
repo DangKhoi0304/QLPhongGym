@@ -1,9 +1,11 @@
 from flask_wtf import FlaskForm
-from wtforms.fields.choices import SelectField
+from wtforms.fields.choices import SelectField, SelectMultipleField
 from wtforms.fields.datetime import DateField
-from wtforms.validators import Optional
-from wtforms.fields.simple import PasswordField, SubmitField, StringField
+from wtforms.fields.numeric import IntegerField
+from wtforms.validators import Optional, NumberRange
+from wtforms.fields.simple import PasswordField, SubmitField, StringField, HiddenField
 from wtforms.validators import DataRequired, Length, EqualTo, Email
+from wtforms.widgets import ListWidget, CheckboxInput
 from flask_wtf.file import FileField, FileAllowed
 
 class ChangePasswordForm(FlaskForm):
@@ -51,7 +53,6 @@ class RegisterFormStaff(FlaskForm):
     )
     submit = SubmitField('Đăng ký hội viên')
 
-
 class StaffRegisterForm(RegisterForm):
     # kế thừa các trường trên, thêm chọn role
     role = SelectField('Vai trò', choices=[
@@ -60,3 +61,29 @@ class StaffRegisterForm(RegisterForm):
         ('LETAN', 'LETAN')
     ], validators=[DataRequired()])
     submit = SubmitField('Đăng ký nhân viên')
+
+
+class TaoLichTapForm(FlaskForm):
+    baiTap = StringField('Tên bài tập', validators=[DataRequired(), Length(max=255)])
+    soHiep = IntegerField('Số hiệp', validators=[DataRequired(), NumberRange(min=1)])
+    soLan = IntegerField('Số lần/hiệp', validators=[DataRequired(), NumberRange(min=1)])
+
+    # --- THAY ĐỔI Ở ĐÂY ---
+    # Bỏ ngayBatDau và cacThu. Dùng 1 trường duy nhất để nhận dữ liệu từ Flatpickr
+    ngayTap = StringField('Chọn ngày tập cụ thể', validators=[DataRequired()])
+
+    submit = SubmitField('Thêm bài tập')
+
+class ChonHLVForm(FlaskForm):
+    # Dùng HiddenField để gửi ID của HLV khi user nhấn nút chọn
+    hlv_id = HiddenField('Mã HLV', validators=[DataRequired()])
+    submit = SubmitField('Chọn HLV này')
+
+
+class SuaLichTapForm(FlaskForm):
+    baiTap = StringField('Tên bài tập', validators=[DataRequired(), Length(max=255)])
+    soHiep = IntegerField('Số hiệp', validators=[DataRequired(), NumberRange(min=1)])
+    soLan = IntegerField('Số lần/hiệp', validators=[DataRequired(), NumberRange(min=1)])
+    # Cho phép sửa ngày tập dạng văn bản (VD: HLV muốn sửa ngày 15 thành 16 thủ công)
+    ngayTap = StringField('Chuỗi ngày tập', validators=[DataRequired()])
+    submit = SubmitField('Lưu Thay Đổi')

@@ -1,4 +1,4 @@
-from app.models import User, HuanLuyenVien, GoiTap, DangKyGoiTap, ThanhToan
+from app.models import User, HuanLuyenVien, GoiTap, DangKyGoiTap, ThanhToan, LichTap
 from app import app
 from uuid import uuid4
 from datetime import date, datetime, timedelta
@@ -231,3 +231,94 @@ def get_active_package_by_user_id(user_id):
     ).order_by(DangKyGoiTap.ngayKetThuc).first()
 
     return active_package
+
+# ----------------------------------------------------------------------
+#  Xử lý Huấn Luyện Viên & Lịch Tập (MỚI THÊM)
+# ----------------------------------------------------------------------
+
+# 1. Lấy danh sách tất cả HLV để hội viên chọn
+def load_all_huanluyenvien():
+    return HuanLuyenVien.query.all()
+
+# 2. Gán HLV cho hội viên (cập nhật vào bảng DangKyGoiTap đang active)
+def assign_pt_for_member(user_id, hlv_id):
+    try:
+        # Tìm gói tập đang kích hoạt của user
+        active_pack = DangKyGoiTap.query.filter(
+            DangKyGoiTap.hoiVien_id == user_id,
+            DangKyGoiTap.trangThai == True,
+            DangKyGoiTap.ngayKetThuc >= datetime.now().date()
+        ).first()
+
+        if active_pack:
+            active_pack.huanLuyenVien_id = hlv_id
+            db.session.commit()
+            return True
+        return False
+    except Exception as ex:
+        db.session.rollback()
+        app.logger.exception(f"Lỗi assign PT: {ex}")
+        return False
+
+# 3. Lấy danh sách hội viên CỦA 1 HLV cụ thể (để HLV xem danh sách đệ tử)
+def get_members_by_hlv(hlv_id):
+    # Lấy các gói đăng ký mà có huanLuyenVien_id trùng với id của HLV đang đăng nhập
+    return DangKyGoiTap.query.filter(
+        DangKyGoiTap.huanLuyenVien_id == hlv_id,
+        DangKyGoiTap.trangThai == True,
+        DangKyGoiTap.ngayKetThuc >= datetime.now().date()
+    ).all()
+
+# 4. Thêm lịch tập
+def add_schedule(dangKyId, baiTap, soHiep, soLan, ngayTap):
+    try:
+        lich = LichTap(
+            dangKyGoiTap_id=dangKyId,
+            baiTap=baiTap,
+            soHiep=soHiep,
+            soLan=soLan,
+            ngayTap=ngayTap
+        )
+        db.session.add(lich)
+        db.session.commit()
+        return True
+    except Exception as ex:
+        db.session.rollback()
+        app.logger.exception(f"Lỗi add schedule: {ex}")
+        return False
+
+# 5. Lấy lịch tập của 1 gói đăng ký (để hiển thị cho hội viên xem)
+def get_schedule_by_dangky(dangKyId):
+    return LichTap.query.filter_by(dangKyGoiTap_id=dangKyId).all()
+
+def get_schedule_item_by_id(id):
+    return LichTap.query.get(id)
+
+# [MỚI] 7. Cập nhật lịch tập
+def update_schedule(id, baiTap, soHiep, soLan, ngayTap):
+    try:
+        lich = LichTap.query.get(id)
+        if lich:
+            lich.baiTap = baiTap
+            lich.soHiep = soHiep
+            lich.soLan = soLan
+            lich.ngayTap = ngayTap
+            db.session.commit()
+            return True
+    except Exception as ex:
+        db.session.rollback()
+        print(f"Lỗi update: {ex}")
+    return False
+
+# [MỚI] 8. Xóa lịch tập
+def delete_schedule(id):
+    try:
+        lich = LichTap.query.get(id)
+        if lich:
+            db.session.delete(lich)
+            db.session.commit()
+            return True
+    except Exception as ex:
+        db.session.rollback()
+        print(f"Lỗi delete: {ex}")
+    return False

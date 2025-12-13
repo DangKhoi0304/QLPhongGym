@@ -1,25 +1,51 @@
-<!-- header.html -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/header.css') }}">
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">GYM FITNESS</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <a class="navbar-brand fw-bold" href="{{ url_for('index') }}">GYM FITNESS</a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
+
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto align-items-center">
 
-                <li class="nav-item"><a class="nav-link" href="/" data-title="Trang Chủ">Trang Chủ</a></li>
-                <li class="nav-item"><a class="nav-link" href="/dangky/nhanvien" data-title="Đăng Ký Hội Viên">Đăng ký hội viên</a></li>
-
+                {# --- TRƯỜNG HỢP ĐÃ ĐĂNG NHẬP --- #}
                 {% if current_user.is_authenticated %}
 
-                    <li class="nav-item"><a class="nav-link" href="/logout">Đăng Xuất</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so') }}">
+                            <i class="fas fa-user-circle"></i> Chào, {{ current_user.hoTen }}
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        {# A. Nếu là NHÂN VIÊN (Lễ tân, Thu ngân, Admin) #}
+                        {% if current_user.NhanVienProfile %}
+                            {% if current_user.NhanVienProfile.vaiTro.name == 'NGUOIQUANTRI' %}
+                                <a class="nav-link" href="/admin">Trang Quản Trị</a>
+                            {% else %}
+                                <a class="nav-link" href="{{ url_for('thong_tin_nhan_vien', taikhoan=current_user.taiKhoan) }}">Dashboard Nhân Viên</a>
+                            {% endif %}
+
+                        {# B. Nếu là HUẤN LUYỆN VIÊN #}
+                        {% elif current_user.huanluyenvien %}
+                            <a class="nav-link" href="{{ url_for('thong_tin_nhan_vien', taikhoan=current_user.taiKhoan) }}">Dashboard HLV</a>
+
+                        {# C. Nếu là HỘI VIÊN (Mặc định) #}
+                        {% else %}
+                            <a class="nav-link" href="{{ url_for('hoi_vien', taikhoan=current_user.taiKhoan) }}">Dashboard Hội Viên</a>
+                        {% endif %}
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout_process') }}">Đăng Xuất</a>
+                    </li>
+
+                {# --- TRƯỜNG HỢP CHƯA ĐĂNG NHẬP --- #}
                 {% else %}
-                    <!-- Nếu chưa đăng nhập, hiển thị Đăng nhập và Đăng ký -->
-                    <li class="nav-item"><a class="nav-link" href="/login" data-title="Đăng Nhập">Đăng Nhập</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/dangky" data-title="Đăng Ký">Đăng Ký</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('login_process') }}">Đăng Nhập</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Đăng Ký</a></li>
                 {% endif %}
             </ul>
         </div>
