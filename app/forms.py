@@ -53,6 +53,18 @@ class RegisterFormStaff(FlaskForm):
     )
     submit = SubmitField('Đăng ký hội viên')
 
+
+class GiaHanForm(FlaskForm):
+    user_id = HiddenField('User ID', validators=[DataRequired()])
+    goiTap_id = SelectField('Chọn Gói Tập', validators=[DataRequired()], coerce=int)
+    phuong_thuc = SelectField(
+        'Phương thức thanh toán',
+        choices=[('Tiền mặt', 'Tiền mặt'), ('Chuyển khoản', 'Chuyển khoản')],
+        default='Tiền mặt',
+        validators=[DataRequired()]
+    )
+    submit = SubmitField('Xác Nhận Thanh Toán')
+
 class StaffRegisterForm(RegisterForm):
     # kế thừa các trường trên, thêm chọn role
     role = SelectField('Vai trò', choices=[

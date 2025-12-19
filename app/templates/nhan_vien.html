@@ -172,7 +172,7 @@
             {# --- GIAO DIỆN THU NGÂN --- #}
             {% if role_name == 'THUNGAN' %}
             <div class="col-md-6">
-                <a href="#" class="action-card">
+                <a href="/thu-ngan/quan-ly-thanh-toan" class="action-card">
                     <div class="icon-box">
                         <i class="fas fa-file-invoice-dollar"></i>
                     </div>
@@ -181,12 +181,12 @@
                 </a>
             </div>
             <div class="col-md-6">
-                <a href="#" class="action-card">
+                <a href="{{ url_for('thong_ke_doanh_thu') }}" class="action-card">
                     <div class="icon-box">
-                        <i class="fas fa-clock-rotate-left"></i>
+                        <i class="fas fa-chart-pie"></i>
                     </div>
-                    <span class="action-title">Lịch sử Giao dịch</span>
-                    <span class="action-desc">Tra cứu lịch sử các khoản thu và doanh thu theo ngày</span>
+                    <span class="action-title">Thống Kê - Báo Cáo</span>
+                    <span class="action-desc">Thống kê doanh thu và lượng hội viên theo tháng</span>
                 </a>
             </div>
             {% endif %}

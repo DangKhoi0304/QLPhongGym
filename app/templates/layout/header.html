@@ -26,11 +26,13 @@
                     {% if not current_user.NhanVienProfile and not current_user.huanluyenvien %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('hoi_vien', taikhoan=current_user.taiKhoan) }}">
-                                Dashboard
+                                Dashboard HV
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/lich-su-giao-dich">Lịch sử</a>
+                            <a class="nav-link" href="{{ url_for('hoi_vien_lich_su', taikhoan=current_user.taiKhoan) }}">
+                                Lịch sử
+                            </a>
                         </li>
                     {% endif %}
 
@@ -67,7 +69,7 @@
 
                     {# ================== 3. KHU VỰC CÁ NHÂN (USER NÀO CŨNG CÓ) ================== #}
                     <li class="nav-item ms-2">
-                        <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so') }}">
+                        <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so', taikhoan=current_user.taiKhoan) }}">
                             <img src="{{ current_user.avatar if current_user.avatar else '/static/images/default-avatar.jpg' }}"
                                  class="rounded-circle border me-1"
                                  style="width: 25px; height: 25px; object-fit: cover;">

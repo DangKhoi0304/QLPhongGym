@@ -14,7 +14,7 @@
                 {% if current_user.is_authenticated %}
 
                     <li class="nav-item">
-                        <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so') }}">
+                        <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so', taikhoan=current_user.taiKhoan) }}">
                             <i class="fas fa-user-circle"></i> Chào, {{ current_user.hoTen }}
                         </a>
                     </li>

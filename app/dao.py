@@ -1,9 +1,11 @@
+
 from app.models import User, HuanLuyenVien, GoiTap, DangKyGoiTap, ThanhToan, LichTap
 from app import app
 from uuid import uuid4
 from datetime import date, datetime, timedelta
 from app import db
 from app.models import NhanVien, UserRole
+from sqlalchemy import func
 
 DEFAULT_AVATAR = "default"
 
@@ -156,6 +158,9 @@ def create_huanluyenvien_from_user(user):
 def count_goi_tap():
     return GoiTap.query.count()
 
+def get_all_packages():
+    return GoiTap.query.all()
+
 def load_goi_tap(page=1):
 
     page_size = app.config['PAGE_SIZE']
@@ -163,9 +168,14 @@ def load_goi_tap(page=1):
     start = (page - 1) * page_size
 
     return GoiTap.query.slice(start, start + page_size).all()
-
+# Đăng ký gói tập mới
 def add_receipt(user_id, goiTap_id, nhanVien_id = None, payment_method="Tiền mặt"):
+
     try:
+        is_nhan_vien = NhanVien.query.filter_by(user_id=user_id).first()
+        is_hlv = HuanLuyenVien.query.get(user_id)
+        if is_nhan_vien or is_hlv:
+            return False, "Tài khoản thộc Nhân Viên/HLV không được phép đăng ký gói tập!"
         goi_het_han = DangKyGoiTap.query.filter(
             DangKyGoiTap.hoiVien_id == user_id,
             DangKyGoiTap.trangThai == True,  # Đang là 1
@@ -222,7 +232,7 @@ def add_receipt(user_id, goiTap_id, nhanVien_id = None, payment_method="Tiền m
         db.session.rollback()
         app.logger.exception("add_Receipt error: %s", ex)
         return False
-
+# Lọc những gói tập còn thời hạn
 def get_active_package_by_user_id(user_id):
     active_package = DangKyGoiTap.query.filter(
         DangKyGoiTap.hoiVien_id == user_id,
@@ -231,6 +241,51 @@ def get_active_package_by_user_id(user_id):
     ).order_by(DangKyGoiTap.ngayKetThuc).first()
 
     return active_package
+
+# ----------------------------------------------------------------------
+#  Xử lý Thu Ngân
+# ----------------------------------------------------------------------
+
+def get_all_member(kw=None):
+    member = (db.session.query(User).join(NhanVien, User.id == NhanVien.user_id, isouter=True)
+                                    .join(HuanLuyenVien, User.id == HuanLuyenVien.id, isouter=True)
+              .filter(NhanVien.id==None)
+              .filter(HuanLuyenVien.id==None))
+    if kw:
+        kw = kw.strip()
+        member = member.filter(User.hoTen.contains(kw)|
+                               User.SDT.contains(kw)|
+                               User.taiKhoan.contains(kw)
+        )
+
+    return member.order_by(User.id).all()
+
+def get_payment_history_by_id(user_id):
+    return ThanhToan.query.filter_by(hoiVien_id=user_id).order_by(ThanhToan.ngayThanhToan.desc()).all()
+
+def stats_revenue(year = datetime.now().year):
+    """Thống kê doanh thu theo tháng - theo gói tập"""
+    revenue = ((db.session.query(func.extract('month', ThanhToan.ngayThanhToan).label('thang'),GoiTap.tenGoiTap,
+                               func.sum(ThanhToan.soTienTT))
+            .join(DangKyGoiTap,ThanhToan.dangKyGoiTap_id==DangKyGoiTap.id)
+            .join(GoiTap, DangKyGoiTap.goiTap_id==GoiTap.id))
+            .filter(func.extract('year', ThanhToan.ngayThanhToan) == year)
+            .order_by(func.extract('month', ThanhToan.ngayThanhToan)))
+    return revenue.group_by(func.extract('month', ThanhToan.ngayThanhToan),GoiTap.tenGoiTap).all()
+
+def stats_member_growth(year=datetime.now().year):
+    """Thống kê số lượng hội viên đăng ký mới theo tháng"""
+    member_growth = db.session.query(func.extract('month', User.NgayDangKy),func.count(User.id)
+                  ).filter(func.extract('year', User.NgayDangKy) == year).order_by(func.extract('month', User.NgayDangKy))
+
+    return member_growth.group_by(func.extract('month', User.NgayDangKy)).all()
+
+def count_active_members():
+    """Đếm tổng số hội viên đang hoạt động (Gói tập còn hạn)"""
+    return DangKyGoiTap.query.filter(
+        DangKyGoiTap.trangThai == True,
+        DangKyGoiTap.ngayKetThuc >= datetime.now().date()
+    ).count()
 
 # ----------------------------------------------------------------------
 #  Xử lý Huấn Luyện Viên & Lịch Tập (MỚI THÊM)
@@ -260,7 +315,7 @@ def assign_pt_for_member(user_id, hlv_id):
         app.logger.exception(f"Lỗi assign PT: {ex}")
         return False
 
-# 3. Lấy danh sách hội viên CỦA 1 HLV cụ thể (để HLV xem danh sách đệ tử)
+# 3. Lấy danh sách hội viên CỦA 1 HLV cụ thể
 def get_members_by_hlv(hlv_id):
     # Lấy các gói đăng ký mà có huanLuyenVien_id trùng với id của HLV đang đăng nhập
     return DangKyGoiTap.query.filter(

@@ -6,7 +6,8 @@ from datetime import timedelta, datetime
 from app.models import UserRole, NhanVien, GoiTap, DangKyGoiTap
 from flask_login import login_user, logout_user, current_user, login_required
 
-from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm, ChangePasswordForm, TaoLichTapForm, ChonHLVForm, SuaLichTapForm
+from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm, ChangePasswordForm, \
+    TaoLichTapForm, ChonHLVForm, SuaLichTapForm, GiaHanForm
 from app.utils_mail import send_mail_gmail
 
 from uuid import uuid4
@@ -106,10 +107,23 @@ def hoi_vien(taikhoan):
     active_package = dao.get_active_package_by_user_id(current_user.id)
     return render_template('HoiVien/hoi_vien.html', taikhoan=taikhoan, active_package=active_package)
 
-
-@app.route("/hoso", methods=['GET', 'POST'])
+@app.route('/hoi-vien/<taikhoan>/lich_su')
 @login_required
-def ho_so():
+def hoi_vien_lich_su(taikhoan):
+    if current_user.taiKhoan != taikhoan:
+        flash("Bạn không có quyền truy cập lịch sử của người khác.", "danger")
+        return redirect(url_for('index'))
+
+    history = dao.get_payment_history_by_id(current_user.id)
+    return render_template('HoiVien/lich_su_giao_dich.html', taikhoan=taikhoan, history=history)
+
+@app.route("/nhan-vien/<taikhoan>/hoso", methods=['GET', 'POST'])
+@login_required
+def ho_so(taikhoan):
+    if taikhoan != current_user.taiKhoan:
+        flash("Bạn không có quyền truy cập hồ sơ này", "danger")
+        return redirect(url_for('index'))
+
     form = ChangeInfoForm()
     form_pw = ChangePasswordForm()
 
@@ -131,11 +145,11 @@ def ho_so():
                     flash(msg, "success")
                 else:
                     flash(msg, "danger")
-                return redirect(url_for('ho_so'))
+                return redirect(url_for('ho_so', taikhoan=taikhoan))
             else:
                 app.logger.debug("ChangeInfoForm errors: %s", form.errors)
                 flash("Form cập nhật thông tin không hợp lệ.", "danger")
-                return redirect(url_for('ho_so'))
+                return redirect(url_for('ho_so', taikhoan=taikhoan))
 
         # 2. Đổi mật khẩu
         elif action == 'change_password':
@@ -145,7 +159,7 @@ def ho_so():
 
                 if not current_user.check_password(current_pw):
                     flash("Mật khẩu hiện tại không đúng.", "danger")
-                    return redirect(url_for('ho_so'))
+                    return redirect(url_for('ho_so', taikhoan=taikhoan))
 
                 try:
                     current_user.set_password(new_pw)
@@ -155,7 +169,7 @@ def ho_so():
                     db.session.rollback()
                     app.logger.exception("Lỗi khi đổi mật khẩu: %s", ex)
                     flash("Đổi mật khẩu thất bại.", "danger")
-                return redirect(url_for('ho_so'))
+                return redirect(url_for('ho_so', taikhoan=taikhoan))
             else:
                 app.logger.debug("ChangePasswordForm errors: %s", form_pw.errors)
                 flash("Form đổi mật khẩu không hợp lệ.", "danger")
@@ -163,7 +177,7 @@ def ho_so():
 
         else:
             flash("Yêu cầu không hợp lệ.", "danger")
-            return redirect(url_for('ho_so'))
+            return redirect(url_for('ho_so', taikhoan=taikhoan))
 
     # --- XỬ LÝ GET (Hiển thị form) ---
 
@@ -229,6 +243,9 @@ def upload_avatar():
 @app.route('/api/buy_package', methods=['POST'])
 @login_required
 def buy_package():
+    if current_user.NhanVienProfile or getattr(current_user, 'huanluyenvien', None):
+        return jsonify({'code': 403, 'msg': 'Tài khoản nội bộ không thể mua gói tập.'})
+
     data = request.json
     goiTap_id = data['goiTap_id']
     if not goiTap_id:
@@ -241,6 +258,135 @@ def buy_package():
     else:
         return jsonify({'code': 400, 'msg': msg})
 
+@app.route('/thu-ngan/quan-ly-thanh-toan', methods=['GET', 'POST'])
+@login_required
+def payment_management():
+    # Quyền truy cập
+    if not current_user.NhanVienProfile or current_user.NhanVienProfile.vaiTro not in [UserRole.THUNGAN, UserRole.NGUOIQUANTRI]:
+        flash("Bạn không có quyền truy cập", "danger")
+        return redirect('/')
+
+    form = GiaHanForm()
+    packages = dao.get_all_packages()
+    form.goiTap_id.choices = [
+        (p.id, f"{p.tenGoiTap} - {int(p.giaTienGoi):,} VNĐ") for p in packages
+    ]
+
+    if form.validate_on_submit():
+        user_id = form.user_id.data
+        goiTap_id = form.goiTap_id.data
+        phuong_thuc = form.phuong_thuc.data
+
+        success, msg = dao.add_receipt(
+            user_id=user_id,
+            goiTap_id=goiTap_id,
+            nhanVien_id=current_user.NhanVienProfile.id,
+            payment_method=phuong_thuc
+        )
+
+        if success:
+            flash(f"Gia hạn thành công! {msg}", "success")
+        else:
+            flash(f"Không thể gia hạn: {msg}", "danger")
+
+        return redirect(request.url)  # Reload trang để clear form
+
+        # Nếu form submit bị lỗi (ví dụ thiếu field), in lỗi ra log để debug
+    if form.errors:
+        print("Form Errors:", form.errors)
+        flash("Dữ liệu gửi lên không hợp lệ.", "danger")
+
+        # 5. Xử lý hiển thị danh sách (GET) - Giữ nguyên logic tìm kiếm cũ
+    keyword = request.args.get('keyword', '')
+    members_raw = dao.get_all_member(keyword)
+
+    members_data = []
+    if members_raw:
+        for m in members_raw:
+            active_pack = dao.get_active_package_by_user_id(m.id)
+            members_data.append({
+                'info': m,
+                'active_pack': active_pack
+            })
+
+    # Truyền biến form sang template
+    return render_template('ThuNgan/quan_ly_thanh_toan.html',
+                           members=members_data,
+                           form=form,  # <-- Truyền form vào đây
+                           keyword=keyword)
+
+
+    return render_template('ThuNgan/quan_ly_thanh_toan.html')
+
+@app.route('/api/payment-history/<int:user_id>')
+@login_required
+def get_payment_history_api(user_id):
+    # Kiểm tra quyền thu ngân/admin
+    if not current_user.NhanVienProfile:
+        flash("Bạn không có quyền truy cập", "danger")
+        return redirect('/')
+
+    history = dao.get_payment_history_by_id(user_id)
+    data = []
+    for p in history:
+        ten_goi = None
+        if p.dang_ky and p.dang_ky.goi_tap:
+            ten_goi = p.dang_ky.goi_tap.tenGoiTap
+
+        data.append({
+            'ngay' : p.ngayThanhToan.strftime('%d/%m/%Y'),
+            'goi' : ten_goi,
+            'tien': "{:,.0f}".format(p.soTienTT),
+            'phuong_thuc': p.phuongThuc
+
+        })
+    return jsonify(data)
+
+@app.route('/thu-ngan/thong-ke')
+@login_required
+def thong_ke_doanh_thu():
+    if not current_user.NhanVienProfile or current_user.NhanVienProfile.vaiTro not in [UserRole.THUNGAN, UserRole.NGUOIQUANTRI]:
+        flash("Bạn không có quyền truy cập", "danger")
+        return redirect('/')
+    year = request.args.get('year', datetime.now().year, type=int)
+    raw_revenue = dao.stats_revenue(year)
+    data_members= dao.stats_member_growth(year)
+    total_active = dao.count_active_members()
+
+    package_name = set(item[1] for item in raw_revenue)
+    revenue_datasets = {name: [0]*12 for name in package_name}
+
+    total_revenue = 0
+    for thang, ten_goi, tien in raw_revenue:
+        idx = int(thang) -1
+        revenue_datasets[ten_goi][idx] =tien
+        total_revenue+=tien
+
+    colors = ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
+
+    final_revenue_datasets = []
+    for i, (pkg_name, data) in enumerate(revenue_datasets.items()):
+        final_revenue_datasets.append({
+            'label': pkg_name,
+            'data': data,
+            'backgroundColor': colors[i % len(colors)],
+            'stack': 'Stack 0',
+        })
+
+    # 3. Xử lý dữ liệu Hội viên (Giữ nguyên logic cũ)
+    member_values = [0] * 12
+    for mon, val in data_members:
+        member_values[int(mon) - 1] = val
+
+    month_labels = [f"Tháng {i}" for i in range(1, 13)]
+
+    return render_template('ThuNgan/thong_ke_bao_cao.html',
+                           month_labels=month_labels,
+                           revenue_datasets=final_revenue_datasets,  # <-- Truyền biến mới này
+                           total_revenue=total_revenue,  # <-- Truyền tổng doanh thu
+                           member_values=member_values,
+                           total_active=total_active,
+                           selected_year=year)
 
 @app.route('/dangky', methods=['GET','POST'])
 def register():
@@ -335,6 +481,7 @@ def staff_register():
 
         matKhau = DEFAULT_PASSWORD
 
+
         # Kiểm tra trùng
         if dao.get_user_by_username(taiKhoan):
             flash("Tài khoản đã tồn tại. Vui lòng chọn tên khác.", "danger")
@@ -346,8 +493,30 @@ def staff_register():
             flash("Số điện thoại đã được sử dụng.", "danger")
             return render_template('LeTan/dang_ky_hoi_vien.html', form=form)
 
+        avatar_url = DEFAULT_AVATAR
+        avatar_file = request.files.get('avatar')
+        if avatar_file and avatar_file.filename:
+            # kiểm tra extension
+            filename = secure_filename(avatar_file.filename)
+            ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            if ext in ALLOWED_EXT:
+                try:
+                    upload_result = cloudinary.uploader.upload(
+                        avatar_file,
+                        public_id=f"avatar_{uuid4().hex}",
+                        folder="avatars",
+                        overwrite=True,
+                        resource_type="image",
+                        transformation=[{"width": 512, "height": 512, "crop": "limit"}]
+                    )
+                    avatar_url = upload_result.get('secure_url') or avatar_url
+                except Exception as ex:
+                    app.logger.exception("Lỗi upload avatar lên Cloudinary: %s", ex)
+            else:
+                flash("File ảnh không hợp lệ (chỉ jpg/png/gif).", "warning")
+
         # Tạo user — DAO create_user phải chấp nhận goiTap (mã bạn đã cập nhật)
-        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau)
+        user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, avatar=avatar_url)
         if user:
             try:
                 nhanVien_id = current_user.NhanVienProfile.id if current_user.NhanVienProfile else None
@@ -389,13 +558,12 @@ def staff_register():
                     flash(f"Tạo tài khoản thành công nhưng lỗi đăng ký gói: {msg}", "warning")
             except Exception as e:
                 flash(f"Lỗi hệ thống khi thanh toán: {str(e)}", "danger")
-            else:
-                flash("Tạo tài khoản thất bại.", "danger")
+        # else:
+        #     flash("Tạo tài khoản thất bại.", "danger")
 
         return redirect(url_for('staff_register'))
 
     return render_template('LeTan/dang_ky_hoi_vien.html', form=form)
-
 
 @app.route('/chon-hlv', methods=['GET', 'POST'])
 @login_required
@@ -403,7 +571,7 @@ def choose_pt():
     # ... (giữ nguyên logic kiểm tra gói tập active) ...
     active_package = dao.get_active_package_by_user_id(current_user.id)
     if not active_package:
-        return redirect('/') # hoặc thông báo lỗi
+        return redirect('/')
 
     form = ChonHLVForm()
 

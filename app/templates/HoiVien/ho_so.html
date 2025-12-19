@@ -30,7 +30,7 @@
                                                  alt="Avatar">
                                         {% else %}
                                             <img src="{{ avatar_val }}"
-                                                 class="w-100 rounded-circle object-fit-cover"
+                                                 class="w-100 h-100 rounded-circle object-fit-cover"
                                                  alt="Avatar">
                                         {% endif %}
                                     </div>
@@ -40,7 +40,7 @@
                                            data-bs-toggle="tooltip" title="Cập nhật ảnh đại diện">
                                         <i class="bi bi-camera-fill"></i>
                                     </label>
-                                    <input type="file" id="avatar-upload" class="d-none" accept="image/*">
+                                    <input type="file" id="avatar-upload" class="d-none" accept="image/*" data-url="{{ url_for('upload_avatar') }}">
                                 </div>
 
                                 <h4 class="fw-bold mb-1 text-dark">{{ user_info.hoTen }}</h4>
@@ -157,7 +157,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
-      <form method="POST" action="{{ url_for('ho_so') }}">
+      <form method="POST" action="{{ url_for('ho_so', taikhoan=current_user.taiKhoan) }}">
         {{ form.hidden_tag() }}
         <input type="hidden" name="action" value="update_profile">
 
@@ -208,7 +208,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
-      <form method="POST" action="{{ url_for('ho_so') }}">
+      <form method="POST" action="{{ url_for('ho_so', taikhoan=current_user.taiKhoan) }}">
         {{ form_pw.hidden_tag() }}
         <input type="hidden" name="action" value="change_password">
 
@@ -241,42 +241,5 @@
   </div>
 </div>
 
-<script>
-  // JS nhanh: upload avatar khi chọn file (gọi /api/upload-avatar)
-  document.addEventListener('DOMContentLoaded', function () {
-    const avatarInput = document.getElementById('avatar-upload');
-    const avatarContainer = document.getElementById('avatar-container');
-
-    if (avatarInput) {
-      avatarInput.addEventListener('change', async function () {
-        const f = this.files[0];
-        if (!f) return;
-        const fd = new FormData();
-        fd.append('file', f);
-        try {
-          const res = await fetch('{{ url_for("upload_avatar") }}', {
-            method: 'POST',
-            body: fd,
-            credentials: 'same-origin'
-          });
-          const json = await res.json();
-          if (json.success && json.image_url) {
-            // cập nhật ảnh hiển thị
-            avatarContainer.querySelector('img')?.setAttribute('src', json.image_url);
-            // có thể show toast success
-          } else {
-            alert(json.error || 'Upload thất bại');
-          }
-        } catch (e) {
-          console.error(e);
-          alert('Lỗi khi upload avatar');
-        }
-      });
-
-      // click label -> open file picker
-      document.querySelector('[for="avatar-upload"]').addEventListener('click', () => avatarInput.click());
-    }
-  });
-</script>
 
 {% endblock %}
