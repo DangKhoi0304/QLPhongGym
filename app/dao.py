@@ -275,8 +275,13 @@ def stats_revenue(year = datetime.now().year):
 
 def stats_member_growth(year=datetime.now().year):
     """Thống kê số lượng hội viên đăng ký mới theo tháng"""
-    member_growth = db.session.query(func.extract('month', User.NgayDangKy),func.count(User.id)
-                  ).filter(func.extract('year', User.NgayDangKy) == year).order_by(func.extract('month', User.NgayDangKy))
+    member_growth = (db.session.query(func.extract('month', User.NgayDangKy),func.count(User.id)
+                  ).join(NhanVien, User.id == NhanVien.user_id, isouter=True)
+                    .join(HuanLuyenVien, User.id ==HuanLuyenVien.id, isouter=True)
+                     .filter(func.extract('year', User.NgayDangKy) == year,
+                             NhanVien.id ==None,
+                             HuanLuyenVien.id == None) #Chỉ lấy những tài khoản không phải là Nhân Viên / HLV
+                     .order_by(func.extract('month', User.NgayDangKy)))
 
     return member_growth.group_by(func.extract('month', User.NgayDangKy)).all()
 
