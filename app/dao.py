@@ -302,7 +302,7 @@ def get_members_by_hlv(hlv_id):
     ).all()
 
 # 4. Thêm lịch tập
-def add_schedule(dangKyId, baiTap, nhom_co, soHiep, soLan, ngayTap):
+def add_schedule(dangKyId, baiTap, nhom_co, soHiep, soLan, ngayTap, danh_muc_id=None):
     try:
         lich = LichTap(
             dangKyGoiTap_id=dangKyId,
@@ -310,7 +310,8 @@ def add_schedule(dangKyId, baiTap, nhom_co, soHiep, soLan, ngayTap):
             nhom_co=nhom_co,
             soHiep=soHiep,
             soLan=soLan,
-            ngayTap=ngayTap
+            ngayTap=ngayTap,
+            danh_muc_id=danh_muc_id
         )
         db.session.add(lich)
         db.session.commit()
@@ -328,7 +329,7 @@ def get_schedule_item_by_id(id):
     return LichTap.query.get(id)
 
 # [MỚI] 7. Cập nhật lịch tập
-def update_schedule(id, baiTap,nhom_co, soHiep, soLan, ngayTap):
+def update_schedule(id, baiTap,nhom_co, soHiep, soLan, ngayTap, danh_muc_id=None):
     try:
         lich = LichTap.query.get(id)
         if lich:
@@ -337,6 +338,7 @@ def update_schedule(id, baiTap,nhom_co, soHiep, soLan, ngayTap):
             lich.soHiep = soHiep
             lich.soLan = soLan
             lich.ngayTap = ngayTap
+            lich.danh_muc_id = danh_muc_id
             db.session.commit()
             return True
     except Exception as ex:

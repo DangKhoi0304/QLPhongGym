@@ -584,13 +584,13 @@ def choose_pt():
 @app.route('/hlv-panel/tao-lich/<int:dangky_id>', methods=['GET', 'POST'])
 @login_required
 def create_schedule(dangky_id):
-    # 1. Kiểm tra quyền
+    # 1. Kiểm tra quyền: Phải là HLV mới được vào
     if not getattr(current_user, 'huanluyenvien', None):
         return redirect('/')
 
     form = TaoLichTapForm()
 
-    # 2. Load dữ liệu gợi ý
+    # 2. Load dữ liệu gợi ý cho form (Autocomplete)
     ds_bai_tap = DanhMucBaiTap.query.all()
     goi_y_list = [b.ten_bai_tap for b in ds_bai_tap]
     data_map = {b.ten_bai_tap: b.nhom_co for b in ds_bai_tap}
@@ -610,55 +610,45 @@ def create_schedule(dangky_id):
                 found_dates = re.findall(r'\d{2}/\d{2}/\d{4}', lich.ngayTap)
                 old_dates_list.extend(found_dates)
 
-            # --- [LOGIC MỚI] BƯỚC 3: KIỂM TRA QUY ĐỊNH THEO TỪNG TUẦN ---
-
-            # Lấy quy định tối đa
+            # --- BƯỚC 3: KIỂM TRA QUY ĐỊNH THEO TỪNG TUẦN (LOGIC CHUẨN) ---
             quydinh = QuyDinh.query.filter_by(ten_quy_dinh="Số ngày tập tối đa").first()
 
             if quydinh:
                 max_days = int(quydinh.gia_tri)
 
-                # Tạo Dictionary để gom nhóm: Key=(Năm, Tuần), Value={Set các ngày}
-                # Ví dụ: { (2025, 52): {'22/12', '24/12'}, (2026, 1): {'05/01'} }
+                # Maps gom nhóm theo tuần: Key=(Năm, Tuần)
                 map_old = {}  # Ngày cũ trong DB
                 map_total = {}  # Tổng (Cũ + Mới)
 
-                # Hàm helper để gom nhóm ngày vào map
+                # Hàm helper gom nhóm
                 def group_dates_by_week(date_list, target_map):
                     for d_str in date_list:
                         try:
                             dt = datetime.strptime(d_str, '%d/%m/%Y')
-                            # Lấy (Năm, Số tuần) theo chuẩn ISO. Ví dụ: (2025, 52)
-                            key_week = dt.isocalendar()[:2]
-
-                            if key_week not in target_map:
-                                target_map[key_week] = set()
+                            key_week = dt.isocalendar()[:2]  # Lấy (Năm, Số tuần)
+                            if key_week not in target_map: target_map[key_week] = set()
                             target_map[key_week].add(d_str)
                         except ValueError:
                             continue
 
-                # Gom nhóm dữ liệu
                 group_dates_by_week(old_dates_list, map_old)
                 group_dates_by_week(old_dates_list + new_dates_list, map_total)
 
-                # DUYỆT QUA TỪNG TUẦN ĐỂ KIỂM TRA
+                # Duyệt qua từng tuần để kiểm tra
                 for week_key, dates_in_week in map_total.items():
-                    current_total = len(dates_in_week)  # Số ngày trong tuần này (sau khi thêm)
-
-                    # Lấy số ngày cũ của tuần này (nếu có)
+                    current_total = len(dates_in_week)
                     old_count = len(map_old.get(week_key, set()))
 
-                    # LOGIC THÔNG MINH (Giữ lại logic bạn thích):
-                    # Nếu tuần này TRƯỚC ĐÓ đã vi phạm (Cũ > Max), nhưng lần này không thêm ngày mới -> Cho qua
+                    # Nếu tuần này vốn dĩ đã vượt quy định (do lịch sử để lại)
                     if old_count > max_days:
-                        if current_total > old_count:
+                        if current_total > old_count:  # Chỉ chặn nếu cố tình thêm ngày mới
                             year, week_num = week_key
                             flash(
-                                f"Tuần {week_num}/{year}: Lịch cũ ({old_count} ngày) đã quá quy định. Bạn không được thêm ngày mới vào tuần này.",
+                                f"Tuần {week_num}/{year}: Lịch cũ ({old_count} ngày) đã vượt quá quy định. Bạn KHÔNG THỂ thêm ngày mới, chỉ được sửa bài tập.",
                                 "danger")
                             return redirect(url_for('create_schedule', dangky_id=dangky_id))
 
-                    # Nếu tuần này TRƯỚC ĐÓ bình thường, giờ thêm vào bị lố -> Chặn
+                    # Nếu tuần này bình thường -> Kiểm tra giới hạn
                     else:
                         if current_total > max_days:
                             year, week_num = week_key
@@ -666,10 +656,9 @@ def create_schedule(dangky_id):
                                 f"Tuần {week_num}/{year}: Bạn chọn {current_total} ngày. Quy định tối đa {max_days} ngày/tuần.",
                                 "danger")
                             return redirect(url_for('create_schedule', dangky_id=dangky_id))
+            # ----------------------------------------------------------------
 
-            # -----------------------------------------------------------
-
-            # --- BƯỚC 4: XỬ LÝ FORMAT VÀ LƯU (Như cũ) ---
+            # --- BƯỚC 4: FORMAT NGÀY THÁNG ĐỂ LƯU ---
             temp_dates = []
             for d_str in new_dates_list:
                 try:
@@ -678,7 +667,7 @@ def create_schedule(dangky_id):
                 except ValueError:
                     continue
 
-            temp_dates.sort()
+            temp_dates.sort()  # Sắp xếp tăng dần
 
             days_map = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật']
             for date_obj in temp_dates:
@@ -688,13 +677,25 @@ def create_schedule(dangky_id):
 
         final_ngay_tap = ", ".join(formatted_list)
 
+        # --- [MỚI] BƯỚC 5: TÌM ID DANH MỤC (LOGIC LAI) ---
+        ten_bai = form.baiTap.data
+
+        # Tìm trong bảng danh mục xem có tên này chưa
+        dm_obj = DanhMucBaiTap.query.filter_by(ten_bai_tap=ten_bai).first()
+
+        # Nếu có thì lấy ID, nếu không (bài tập lạ) thì là None
+        dm_id = dm_obj.id if dm_obj else None
+        # -------------------------------------------------
+
+        # Gọi DAO lưu xuống DB (Truyền thêm danh_muc_id)
         if dao.add_schedule(dangky_id, form.baiTap.data, form.nhomCo.data, form.soHiep.data, form.soLan.data,
-                            final_ngay_tap):
+                            final_ngay_tap, danh_muc_id=dm_id):
             flash("Thêm bài tập thành công!", "success")
             return redirect(url_for('create_schedule', dangky_id=dangky_id))
         else:
             flash("Lỗi khi thêm lịch.", "danger")
 
+    # Xử lý GET (Hiển thị trang)
     current_schedule = dao.get_schedule_by_dangky(dangky_id)
     dk = DangKyGoiTap.query.get(dangky_id)
 
