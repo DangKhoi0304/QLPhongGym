@@ -1,32 +1,107 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<h1 class="text-primary">CHÀO MỪNG ĐẾN VỚI TRANG QUẢN TRỊ!</h1>
-<div class="mt-4">
-    <a href="/tao-danh-sach-lop" class="btn btn-primary">Tạo danh sách lớp</a>
-    <a href="/thong-ke-bao-cao" class="btn btn-primary">Thống kê báo cáo</a>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ketThucNamModal">Kết thúc năm học</button>
-    <a href="/logout" class="btn btn-danger">Đăng xuất</a>
-</div>
-  <div class="modal fade" id="ketThucNamModal" tabindex="-1" aria-labelledby="ketThucNamModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="POST" action="/ket-thuc-nam-hoc">
-                <div class="modal-header">
-                    <h3 class="modal-title" id="ketThucNamModalLabel">Xác nhận kết thúc năm học</h3>
+<style>
+    .dashboard-card {
+        border: none;
+        border-radius: 12px;
+        background: #fff;
+        transition: transform 0.2s, box-shadow 0.2s;
+        height: 100%; /* Để các ô cao bằng nhau */
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+    .icon-box {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    .text-value { font-size: 1.8rem; font-weight: 700; }
+    .text-label { font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; color: #6c757d; }
+
+    /* Màu sắc riêng cho từng loại */
+    .bg-soft-primary { background-color: #e6f2ff; color: #0d6efd; }
+    .bg-soft-success { background-color: #e6fffa; color: #198754; }
+    .bg-soft-warning { background-color: #fff8e1; color: #ffc107; }
+    .bg-soft-info    { background-color: #e0f7fa; color: #0dcaf0; }
+    .bg-soft-danger  { background-color: #fee2e2; color: #dc3545; }
+</style>
+
+<div class="container-fluid px-4 mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark m-0">Xin Chào Quản Trị Viên {{ current_user.hoTen }}</h3>
+        </div>
+    </div>
+
+    <h5 class="mb-3 text-muted fw-bold text-uppercase" style="font-size: 0.85rem;">Quản Lý Hệ Thống</h5>
+
+    <div class="row g-3">
+        <div class="col-md-6 col-lg-3">
+            <a href="/admin/user/" class="text-decoration-none">
+                <div class="card dashboard-card shadow-sm text-center py-4">
+                    <div class="card-body">
+                        <div class="icon-box bg-soft-info mx-auto">
+                            <i class="fas fa-address-book"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark">Người Dùng</h6>
+                        <small class="text-muted">DS Hội viên & Nhân viên</small>
+                    </div>
                 </div>
-                <div class="modal-body">
-                    <p>Bạn có chắc chắn muốn kết thúc năm học hiện tại? Hành động này không thể hoàn tác!</p>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a href="/admin/goitap/" class="text-decoration-none">
+                <div class="card dashboard-card shadow-sm text-center py-4">
+                    <div class="card-body">
+                        <div class="icon-box bg-soft-primary mx-auto">
+                            <i class="fas fa-box-open"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark">Gói Tập</h6>
+                        <small class="text-muted">Chỉnh sửa giá & hạn</small>
+                    </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Xác nhận</button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a href="/admin/danhmucbaitap/" class="text-decoration-none">
+                <div class="card dashboard-card shadow-sm text-center py-4">
+                    <div class="card-body">
+                        <div class="icon-box bg-soft-success mx-auto">
+                            <i class="fas fa-list-check"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark">Kho Bài Tập</h6>
+                        <small class="text-muted">Thêm bài tập mẫu</small>
+                    </div>
                 </div>
-            </form>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a href="/admin/quydinh/" class="text-decoration-none">
+                <div class="card dashboard-card shadow-sm text-center py-4">
+                    <div class="card-body">
+                        <div class="icon-box bg-soft-danger mx-auto">
+                            <i class="fas fa-gavel"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark">Quy Định</h6>
+                        <small class="text-muted">Luật phòng tập</small>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-
 {% endblock %}

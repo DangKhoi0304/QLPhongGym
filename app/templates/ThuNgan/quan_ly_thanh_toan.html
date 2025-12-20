@@ -1,4 +1,4 @@
-{% extends "layoutNhanVien/base.html" %}
+{% extends "layout/base.html" %}
 
 {% block content %}
 <style>
@@ -131,80 +131,87 @@
                 <div class="table-responsive">
                     <table class="table custom-table mb-0">
                         <thead>
-                            <tr>
-                                <th class="ps-5" style="width: 45%;">Thông tin Hội viên</th>
-                                <th style="width: 35%;">Gói tập hiện tại</th>
-                                <th class="text-center" style="width: 20%;">Hành động</th>
-                            </tr>
+                        <tr>
+                            <th class="ps-5" style="width: 45%;">Thông tin Hội viên</th>
+                            <th style="width: 35%;">Gói tập hiện tại</th>
+                            <th class="text-center" style="width: 20%;">Hành động</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {% if members %}
-                                {% for item in members %}
-                                {% set u = item.info %}
-                                {% set pack = item.active_pack %}
-                                <tr>
-                                    <td class="ps-5">
-                                        <div class="d-flex align-items-center">
-                                            <img src="{{ u.avatar }}" class="member-avatar me-4" alt="Avatar">
-                                            <div>
-                                                <div class="member-name">{{ u.hoTen }}</div>
-                                                <div class="text-muted small">
-                                                    <i class="bi bi-person-badge me-1"></i> {{ u.taiKhoan }}
-                                                    <span class="mx-2">•</span>
-                                                    <i class="bi bi-telephone me-1"></i> {{ u.SDT }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
+                        {% if members %}
+                        {% for item in members %}
+                        {% set u = item.info %}
+                        {% set pack = item.active_pack %}
+                        <tr>
+                            <td class="ps-5">
+                                <div class="d-flex align-items-center">
+                                    {% if u.avatar and u.avatar != 'default' %}
+                                    <img src="{{ u.avatar }}" class="member-avatar me-4" alt="Avatar {{ u.hoTen }}">
+                                    {% else %}
+                                    <img src="{{ url_for('static', filename='images/default-avatar.jpg') }}"
+                                         class="member-avatar me-4" alt="Default Avatar">
+                                    {% endif %}
 
-                                    <td>
-                                        {% if pack %}
-                                            <div class="d-flex align-items-start flex-column">
+                                    <div>
+                                        <div class="member-name">{{ u.hoTen }}</div>
+                                        <div class="text-muted small">
+                                            <i class="fas fa-id-card me-1"></i> {{ u.taiKhoan }}
+                                            <span class="mx-2">•</span>
+                                            <i class="fas fa-phone me-1"></i> {{ u.SDT }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                {% if pack %}
+                                <div class="d-flex align-items-start flex-column">
                                                 <span class="badge bg-success bg-opacity-10 text-success status-badge mb-2">
                                                     <i class="fas fa-check-circle me-1"></i> Đang hoạt động
                                                 </span>
-                                                <div class="fs-6 text-dark fw-semibold">{{ pack.goi_tap.tenGoiTap }}</div>
-                                                <small class="text-muted">Hết hạn: {{ pack.ngayKetThuc.strftime('%d/%m/%Y') }}</small>
-                                            </div>
-                                        {% else %}
-                                            <span class="badge bg-secondary bg-opacity-10 text-secondary status-badge">
+                                    <div class="fs-6 text-dark fw-semibold">{{ pack.goi_tap.tenGoiTap }}</div>
+                                    <small class="text-muted">Hết hạn: {{ pack.ngayKetThuc.strftime('%d/%m/%Y')
+                                        }}</small>
+                                </div>
+                                {% else %}
+                                <span class="badge bg-secondary bg-opacity-10 text-secondary status-badge">
                                                 <i class="fas fa-exclamation-circle me-1"></i> Chưa đăng ký
                                             </span>
-                                        {% endif %}
-                                    </td>
+                                {% endif %}
+                            </td>
 
-                                    <td class="text-center">
-                                        <div class="d-flex justify-content-center gap-2">
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-2">
 
-                                            <button type="button"
-                                                    class="btn btn-primary rounded-pill fw-bold shadow-sm"
-                                                    style="min-width: 120px;"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#modalPay"
-                                                    onclick="setupPayment('{{ u.id }}', '{{ u.hoTen }}')">
-                                                <i class="fas fa-sync-alt me-2"></i>Gia hạn
-                                            </button>
+                                    <button type="button"
+                                            class="btn btn-primary rounded-pill fw-bold shadow-sm"
+                                            style="min-width: 120px;"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalPay"
+                                            onclick="setupPayment('{{ u.id }}', '{{ u.hoTen }}')">
+                                        <i class="fas fa-sync-alt me-2"></i>Gia hạn
+                                    </button>
 
-                                            <button type="button"
-                                                    class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm"
-                                                    style="min-width: 120px;"
-                                                    onclick="viewHistory('{{ u.id }}', '{{ u.hoTen }}')">
-                                                <i class="fas fa-history me-2"></i>Lịch sử
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr>
-                                    <td colspan="3" class="text-center py-5">
-                                        <div class="py-4">
-                                            <i class="bi bi-search display-4 text-light mb-3"></i>
-                                            <p class="text-muted fs-5">Không tìm thấy hội viên nào.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            {% endif %}
+                                    <button type="button"
+                                            class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm"
+                                            style="min-width: 120px;"
+                                            onclick="viewHistory('{{ u.id }}', '{{ u.hoTen }}')">
+                                        <i class="fas fa-history me-2"></i>Lịch sử
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-5">
+                                <div class="py-4">
+                                    <i class="bi bi-search display-4 text-light mb-3"></i>
+                                    <p class="text-muted fs-5">Không tìm thấy hội viên nào.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
                         </tbody>
                     </table>
                 </div>
@@ -229,7 +236,8 @@
 
                 <div class="modal-body p-4 bg-light bg-opacity-50">
                     <div class="bg-white p-3 rounded-3 shadow-sm mb-4 border-start border-4 border-primary">
-                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Hội viên đang chọn</small>
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Hội viên đang
+                            chọn</small>
                         <div id="payUserName" class="fs-4 fw-bold text-dark mt-1"></div>
                     </div>
 
@@ -245,7 +253,9 @@
                 </div>
 
                 <div class="modal-footer border-0 p-4 bg-white">
-                    <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-bold" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-bold" data-bs-dismiss="modal">
+                        Đóng
+                    </button>
                     {{ form.submit(class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm") }}
                 </div>
             </form>
@@ -253,7 +263,8 @@
     </div>
 </div>
 <div class="modal fade" id="modalHistory" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg"> <div class="modal-content border-0 shadow rounded-4">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow rounded-4">
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title fw-bold"><i class="fas fa-history me-2"></i>Lịch sử giao dịch</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -265,15 +276,15 @@
                 <div class="table-responsive">
                     <table class="table table-striped history-table mb-0">
                         <thead>
-                            <tr>
-                                <th class="ps-4">Ngày thanh toán</th>
-                                <th>Gói tập</th>
-                                <th>Phương thức</th>
-                                <th class="text-end pe-4">Số tiền (VNĐ)</th>
-                            </tr>
+                        <tr>
+                            <th class="ps-4">Ngày thanh toán</th>
+                            <th>Gói tập</th>
+                            <th>Phương thức</th>
+                            <th class="text-end pe-4">Số tiền (VNĐ)</th>
+                        </tr>
                         </thead>
                         <tbody id="historyTableBody">
-                            </tbody>
+                        </tbody>
                     </table>
                 </div>
                 <div id="loadingHist" class="text-center py-4 d-none">

@@ -1,6 +1,6 @@
 {% extends "layout/base.html" %}
 
-{% block title %}Tạo Lịch Tập{% endblock %}
+{% block title %}Lên Lịch Tập Tuần{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -9,16 +9,34 @@
 
 <div class="container mt-4">
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+
     <div class="row">
         <div class="col-lg-4 mb-4">
             <div class="card shadow border-0">
                 <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Thêm Bài Tập Mới</h5>
+                    <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Soạn Giáo Án</h5>
                 </div>
                 <div class="card-body">
                     <div class="d-flex align-items-center mb-3">
-                        <img src="{{ member.avatar if member.avatar else '/static/images/default-avatar.jpg' }}"
-                             class="rounded-circle me-3" width="50" height="50" style="object-fit: cover;">
+                        {% if member.avatar and member.avatar != 'default' %}
+                        <img src="{{ member.avatar }}"
+                             class="rounded-circle me-3" width="50" height="50"
+                             style="object-fit: cover;" alt="Avatar">
+                        {% else %}
+                        <img src="{{ url_for('static', filename='images/default-avatar.jpg') }}"
+                             class="rounded-circle me-3" width="50" height="50"
+                             style="object-fit: cover;" alt="Default Avatar">
+                        {% endif %}
                         <div>
                             <h6 class="mb-0 fw-bold">{{ member.hoTen }}</h6>
                             <small class="text-muted">Đang lên kế hoạch...</small>
@@ -26,33 +44,53 @@
                     </div>
                     <hr>
 
-                    <form method="POST">
+                    <form method="POST" id="formTaoLich" onsubmit="return validateForm()">
                         {{ form.hidden_tag() }}
 
                         <div class="mb-3">
                             {{ form.baiTap.label(class="form-label fw-bold") }}
-                            {{ form.baiTap(class="form-control", placeholder="VD: Squat, Cardio...") }}
+                            {{ form.baiTap(class="form-control", list="list_goi_y", id="input_bai_tap",
+                            placeholder="Nhập tên bài tập...", autocomplete="off") }}
+                            <datalist id="list_goi_y">
+                                {% for ten in goi_y_list %}
+                                <option value="{{ ten }}">
+                                    {% endfor %}
+                            </datalist>
+                            <div class="invalid-feedback" id="err_bai_tap">Vui lòng nhập tên bài tập.</div>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.nhomCo.label(class="form-label fw-bold") }}
+                            {{ form.nhomCo(class="form-control bg-light", id="input_nhom_co", readonly=True,
+                            placeholder="Tự động hoặc nhập tay...") }}
+
+                            <div class="mt-1 small" id="msg_status">
+                                <i class="fas fa-info-circle me-1"></i>Chọn bài mẫu sẽ tự điền nhóm cơ.
+                            </div>
+                            <div class="invalid-feedback" id="err_nhom_co">Vui lòng nhập nhóm cơ.</div>
                         </div>
 
                         <div class="row mb-3">
                             <div class="col-6">
                                 {{ form.soHiep.label(class="form-label fw-bold") }}
-                                {{ form.soHiep(class="form-control", min="1") }}
+                                {{ form.soHiep(class="form-control", min="1", id="input_so_hiep") }}
                             </div>
                             <div class="col-6">
                                 {{ form.soLan.label(class="form-label fw-bold") }}
-                                {{ form.soLan(class="form-control", min="1") }}
+                                {{ form.soLan(class="form-control", min="1", id="input_so_lan") }}
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold text-primary">Chọn ngày tập</label>
+                            <label class="form-label fw-bold text-primary">Chọn ngày tập (*)</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white"><i class="fas fa-calendar-alt text-primary"></i></span>
-                                {{ form.ngayTap(class="form-control", id="datepicker", placeholder="Chạm để chọn nhiều ngày...") }}
-                            </div>
-                            <div class="form-text text-muted small">
-                                Bạn có thể chọn nhiều ngày cùng lúc trên lịch.
+                                {{ form.ngayTap(class="form-control", id="datepicker", placeholder="Chạm để chọn
+                                ngày...") }}
+                                <div class="invalid-feedback" id="err_ngay_tap"
+                                     style="display:none; width:100%; margin-top: 0.25rem; font-size: .875em; color: #dc3545;">
+                                    Vui lòng chọn ít nhất một ngày tập!
+                                </div>
                             </div>
                         </div>
 
@@ -69,63 +107,64 @@
         <div class="col-lg-8">
             <div class="card shadow border-0">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-list-ul me-2"></i>Lịch Đã Lưu</h5>
+                    <h5 class="mb-0">Lịch Đã Lưu</h5>
                     <span class="badge bg-light text-dark">{{ schedule|length }} bài</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
-                                <tr>
-                                    <th class="ps-3">Bài tập</th>
-                                    <th>Chi tiết</th>
-                                    <th>Lịch tập (Thực tế)</th>
-                                    <th class="text-center" style="width: 120px;">Hành động</th>
-                                </tr>
+                            <tr>
+                                <th class="ps-3">Bài tập / Nhóm cơ</th>
+                                <th class="text-center">Hiệp</th>
+                                <th class="text-center">Lần</th>
+                                <th>Lịch tập</th>
+                                <th class="text-center" style="width: 120px;">Hành động</th>
+                            </tr>
                             </thead>
                             <tbody>
-                                {% for item in schedule %}
-                                <tr>
-                                    <td class="ps-3 fw-bold text-primary">{{ item.baiTap }}</td>
-                                    <td>
-                                        <div class="badge bg-secondary">{{ item.soHiep }} Hiệp</div>
-                                        <div class="badge bg-secondary mt-1">{{ item.soLan }} Lần</div>
-                                    </td>
-                                    <td>
-                                        {% set days = item.ngayTap.split(',') %}
-                                        {% for day in days %}
-                                            <div class="mb-1 small">
-                                                <i class="fas fa-calendar-check text-success me-1"></i>
-                                                {{ day.strip() }}
-                                            </div>
-                                        {% endfor %}
-                                    </td>
+                            {% for item in schedule %}
+                            <tr>
+                                <td class="ps-3">
+                                    <div class="fw-bold text-primary">{{ item.baiTap }}</div>
+                                    {% if item.nhom_co %}
+                                    <span class="badge bg-info text-dark" style="font-size: 0.75rem;">
+                                                {{ item.nhom_co }}
+                                            </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center fw-bold">{{ item.soHiep }}</td>
+                                <td class="text-center fw-bold">{{ item.soLan }}</td>
+                                <td>
+                                    {% set days = item.ngayTap.split(',') %}
+                                    {% for day in days %}
+                                    <div class="mb-1 small">
+                                        <i class="fas fa-check text-success me-1"></i>{{ day.strip() }}
+                                    </div>
+                                    {% endfor %}
+                                </td>
 
-                                    <td class="text-center">
-                                        <div class="d-flex justify-content-center gap-2">
-                                            <a href="{{ url_for('edit_schedule_item', id=item.id) }}"
-                                               class="btn btn-warning btn-sm text-dark shadow-sm"
-                                               title="Sửa">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-
-                                            <a href="{{ url_for('delete_schedule_item', id=item.id) }}"
-                                               class="btn btn-danger btn-sm shadow-sm"
-                                               onclick="return confirm('Bạn chắc chắn muốn xóa bài {{ item.baiTap }}?');"
-                                               title="Xóa">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td colspan="4" class="text-center py-5 text-muted">
-                                        <i class="fas fa-clipboard-list fa-3x mb-3 opacity-25"></i>
-                                        <p>Chưa có lịch tập nào cho hội viên này.</p>
-                                    </td>
-                                </tr>
-                                {% endfor %}
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <a href="{{ url_for('edit_schedule_item', id=item.id) }}"
+                                           class="btn btn-warning btn-sm"
+                                           title="Sửa bài tập">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{{ url_for('delete_schedule_item', id=item.id) }}"
+                                           class="btn btn-danger btn-sm"
+                                           onclick="return confirm('Xóa bài này?');"
+                                           title="Xóa bài tập">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">Chưa có bài tập nào.</td>
+                            </tr>
+                            {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -137,14 +176,95 @@
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    flatpickr("#datepicker", {
-        mode: "multiple",       // Cho phép chọn nhiều ngày
-        dateFormat: "d-m-Y",    // Định dạng ngày Việt Nam
-        locale: "vn",           // Ngôn ngữ tiếng Việt
-        minDate: "today",       // Không cho chọn ngày quá khứ
-        disableMobile: "true"   // Giữ giao diện đẹp trên điện thoại
+    // 1. Cấu hình Lịch
+    const fp = flatpickr("#datepicker", {
+        mode: "multiple",
+        dateFormat: "d-m-Y",
+        locale: "vn",
+        minDate: "today",
+        disableMobile: "true"
     });
+
+    // 2. LOGIC XỬ LÝ NHÓM CƠ
+    const exerciseMap = {{ data_map | tojson }};
+    const inputBaiTap = document.getElementById('input_bai_tap');
+    const inputNhomCo = document.getElementById('input_nhom_co');
+    const msgStatus = document.getElementById('msg_status');
+
+    function checkBaiTap() {
+        const tenBai = inputBaiTap.value;
+        if (exerciseMap && exerciseMap[tenBai]) {
+            inputNhomCo.value = exerciseMap[tenBai];
+            inputNhomCo.readOnly = true;
+            inputNhomCo.classList.add('bg-light');
+            inputNhomCo.classList.remove('bg-white');
+            msgStatus.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>Đã lấy từ dữ liệu hệ thống.';
+            msgStatus.className = "mt-1 small text-success";
+        } else {
+            if (tenBai.trim() !== "") {
+                inputNhomCo.readOnly = false;
+                inputNhomCo.classList.remove('bg-light');
+                inputNhomCo.classList.add('bg-white');
+                if (inputNhomCo.readOnly) inputNhomCo.value = "";
+                msgStatus.innerHTML = '<i class="fas fa-pen text-warning me-1"></i>Bài mới: Vui lòng tự nhập nhóm cơ.';
+                msgStatus.className = "mt-1 small text-warning fw-bold";
+            } else {
+                inputNhomCo.value = "";
+                inputNhomCo.readOnly = true;
+                inputNhomCo.classList.add('bg-light');
+                msgStatus.innerHTML = '<i class="fas fa-info-circle me-1"></i>Chọn bài mẫu sẽ tự điền nhóm cơ.';
+                msgStatus.className = "mt-1 small text-muted";
+            }
+        }
+    }
+    inputBaiTap.addEventListener('input', checkBaiTap);
+    inputBaiTap.addEventListener('change', checkBaiTap);
+
+    // 3. HÀM KIỂM TRA TRƯỚC KHI LƯU (VALIDATION)
+    function validateForm() {
+        let isValid = true;
+
+        const valBaiTap = inputBaiTap.value.trim();
+        const valNhomCo = inputNhomCo.value.trim();
+        const valNgayTap = document.getElementById('datepicker').value.trim();
+
+        inputBaiTap.classList.remove('is-invalid');
+        inputNhomCo.classList.remove('is-invalid');
+        document.getElementById('err_ngay_tap').style.display = 'none';
+
+        if (valBaiTap === "") {
+            inputBaiTap.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (valNhomCo === "") {
+            inputNhomCo.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (valNgayTap === "") {
+            document.getElementById('err_ngay_tap').style.display = 'block';
+            isValid = false;
+        }
+
+        if (!isValid) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Thiếu thông tin!',
+                    text: 'Vui lòng nhập tên bài tập, nhóm cơ và chọn ít nhất một ngày tập.',
+                    confirmButtonColor: '#d33'
+                });
+            } else {
+                alert("Vui lòng nhập đầy đủ: Tên bài, Nhóm cơ và Chọn ngày tập!");
+            }
+            return false;
+        }
+
+        return true;
+    }
 </script>
 {% endblock %}

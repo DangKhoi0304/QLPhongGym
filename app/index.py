@@ -3,7 +3,7 @@ from random import choice
 from flask import render_template, request, redirect, session, flash, url_for, jsonify
 from app import app, db, dao, login
 from datetime import timedelta, datetime
-from app.models import UserRole, NhanVien, GoiTap, DangKyGoiTap
+from app.models import UserRole, NhanVien, GoiTap, DangKyGoiTap, DanhMucBaiTap, QuyDinh
 from flask_login import login_user, logout_user, current_user, login_required
 
 from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm, ChangePasswordForm, \
@@ -16,7 +16,7 @@ import re
 import cloudinary, math
 import cloudinary.uploader
 
-DEFAULT_AVATAR = "/static/images/default-avatar.jpg"
+DEFAULT_AVATAR = "default"
 app.secret_key = 'secret_key'  # Khóa bảo mật cho session
 ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif'}
 DEFAULT_PASSWORD = "123456"
@@ -117,13 +117,9 @@ def hoi_vien_lich_su(taikhoan):
     history = dao.get_payment_history_by_id(current_user.id)
     return render_template('HoiVien/lich_su_giao_dich.html', taikhoan=taikhoan, history=history)
 
-@app.route("/nhan-vien/<taikhoan>/hoso", methods=['GET', 'POST'])
+@app.route("/hoso", methods=['GET', 'POST'])
 @login_required
-def ho_so(taikhoan):
-    if taikhoan != current_user.taiKhoan:
-        flash("Bạn không có quyền truy cập hồ sơ này", "danger")
-        return redirect(url_for('index'))
-
+def ho_so():
     form = ChangeInfoForm()
     form_pw = ChangePasswordForm()
 
@@ -145,11 +141,11 @@ def ho_so(taikhoan):
                     flash(msg, "success")
                 else:
                     flash(msg, "danger")
-                return redirect(url_for('ho_so', taikhoan=taikhoan))
+                return redirect(url_for('ho_so'))
             else:
                 app.logger.debug("ChangeInfoForm errors: %s", form.errors)
                 flash("Form cập nhật thông tin không hợp lệ.", "danger")
-                return redirect(url_for('ho_so', taikhoan=taikhoan))
+                return redirect(url_for('ho_so'))
 
         # 2. Đổi mật khẩu
         elif action == 'change_password':
@@ -159,7 +155,7 @@ def ho_so(taikhoan):
 
                 if not current_user.check_password(current_pw):
                     flash("Mật khẩu hiện tại không đúng.", "danger")
-                    return redirect(url_for('ho_so', taikhoan=taikhoan))
+                    return redirect(url_for('ho_so'))
 
                 try:
                     current_user.set_password(new_pw)
@@ -169,7 +165,7 @@ def ho_so(taikhoan):
                     db.session.rollback()
                     app.logger.exception("Lỗi khi đổi mật khẩu: %s", ex)
                     flash("Đổi mật khẩu thất bại.", "danger")
-                return redirect(url_for('ho_so', taikhoan=taikhoan))
+                return redirect(url_for('ho_so'))
             else:
                 app.logger.debug("ChangePasswordForm errors: %s", form_pw.errors)
                 flash("Form đổi mật khẩu không hợp lệ.", "danger")
@@ -177,7 +173,7 @@ def ho_so(taikhoan):
 
         else:
             flash("Yêu cầu không hợp lệ.", "danger")
-            return redirect(url_for('ho_so', taikhoan=taikhoan))
+            return redirect(url_for('ho_so'))
 
     # --- XỬ LÝ GET (Hiển thị form) ---
 
@@ -315,8 +311,6 @@ def payment_management():
                            form=form,  # <-- Truyền form vào đây
                            keyword=keyword)
 
-
-    return render_template('ThuNgan/quan_ly_thanh_toan.html')
 
 @app.route('/api/payment-history/<int:user_id>')
 @login_required
@@ -590,45 +584,113 @@ def choose_pt():
 @app.route('/hlv-panel/tao-lich/<int:dangky_id>', methods=['GET', 'POST'])
 @login_required
 def create_schedule(dangky_id):
+    # 1. Kiểm tra quyền
     if not getattr(current_user, 'huanluyenvien', None):
         return redirect('/')
 
     form = TaoLichTapForm()
 
+    # 2. Load dữ liệu gợi ý
+    ds_bai_tap = DanhMucBaiTap.query.all()
+    goi_y_list = [b.ten_bai_tap for b in ds_bai_tap]
+    data_map = {b.ten_bai_tap: b.nhom_co for b in ds_bai_tap}
+
     if form.validate_on_submit():
-        baiTap = form.baiTap.data
-        soHiep = form.soHiep.data
-        soLan = form.soLan.data
-
-        # --- XỬ LÝ NGÀY TỪ LỊCH ---
-        # Dữ liệu nhận được dạng: "2025-12-15, 2025-12-17"
         raw_dates_str = form.ngayTap.data
-
         formatted_list = []
+
         if raw_dates_str:
-            # Tách chuỗi thành list các ngày
-            raw_list = [d.strip() for d in raw_dates_str.split(',') if d.strip()]
+            # --- BƯỚC 1: LẤY DANH SÁCH NGÀY MỚI ---
+            new_dates_list = [d.strip().replace('-', '/') for d in raw_dates_str.split(',') if d.strip()]
 
-            for d_str in raw_list:
+            # --- BƯỚC 2: LẤY DANH SÁCH NGÀY CŨ TỪ DB ---
+            lich_cu = dao.get_schedule_by_dangky(dangky_id)
+            old_dates_list = []
+            for lich in lich_cu:
+                found_dates = re.findall(r'\d{2}/\d{2}/\d{4}', lich.ngayTap)
+                old_dates_list.extend(found_dates)
+
+            # --- [LOGIC MỚI] BƯỚC 3: KIỂM TRA QUY ĐỊNH THEO TỪNG TUẦN ---
+
+            # Lấy quy định tối đa
+            quydinh = QuyDinh.query.filter_by(ten_quy_dinh="Số ngày tập tối đa").first()
+
+            if quydinh:
+                max_days = int(quydinh.gia_tri)
+
+                # Tạo Dictionary để gom nhóm: Key=(Năm, Tuần), Value={Set các ngày}
+                # Ví dụ: { (2025, 52): {'22/12', '24/12'}, (2026, 1): {'05/01'} }
+                map_old = {}  # Ngày cũ trong DB
+                map_total = {}  # Tổng (Cũ + Mới)
+
+                # Hàm helper để gom nhóm ngày vào map
+                def group_dates_by_week(date_list, target_map):
+                    for d_str in date_list:
+                        try:
+                            dt = datetime.strptime(d_str, '%d/%m/%Y')
+                            # Lấy (Năm, Số tuần) theo chuẩn ISO. Ví dụ: (2025, 52)
+                            key_week = dt.isocalendar()[:2]
+
+                            if key_week not in target_map:
+                                target_map[key_week] = set()
+                            target_map[key_week].add(d_str)
+                        except ValueError:
+                            continue
+
+                # Gom nhóm dữ liệu
+                group_dates_by_week(old_dates_list, map_old)
+                group_dates_by_week(old_dates_list + new_dates_list, map_total)
+
+                # DUYỆT QUA TỪNG TUẦN ĐỂ KIỂM TRA
+                for week_key, dates_in_week in map_total.items():
+                    current_total = len(dates_in_week)  # Số ngày trong tuần này (sau khi thêm)
+
+                    # Lấy số ngày cũ của tuần này (nếu có)
+                    old_count = len(map_old.get(week_key, set()))
+
+                    # LOGIC THÔNG MINH (Giữ lại logic bạn thích):
+                    # Nếu tuần này TRƯỚC ĐÓ đã vi phạm (Cũ > Max), nhưng lần này không thêm ngày mới -> Cho qua
+                    if old_count > max_days:
+                        if current_total > old_count:
+                            year, week_num = week_key
+                            flash(
+                                f"Tuần {week_num}/{year}: Lịch cũ ({old_count} ngày) đã quá quy định. Bạn không được thêm ngày mới vào tuần này.",
+                                "danger")
+                            return redirect(url_for('create_schedule', dangky_id=dangky_id))
+
+                    # Nếu tuần này TRƯỚC ĐÓ bình thường, giờ thêm vào bị lố -> Chặn
+                    else:
+                        if current_total > max_days:
+                            year, week_num = week_key
+                            flash(
+                                f"Tuần {week_num}/{year}: Bạn chọn {current_total} ngày. Quy định tối đa {max_days} ngày/tuần.",
+                                "danger")
+                            return redirect(url_for('create_schedule', dangky_id=dangky_id))
+
+            # -----------------------------------------------------------
+
+            # --- BƯỚC 4: XỬ LÝ FORMAT VÀ LƯU (Như cũ) ---
+            temp_dates = []
+            for d_str in new_dates_list:
                 try:
-                    # 1. Chuyển chuỗi thành đối tượng ngày giờ
-                    date_obj = datetime.strptime(d_str, '%d-%m-%Y')  # Flatpickr trả về dd-mm-yyyy
-
-                    # 2. Tìm thứ tiếng Việt (0=Thứ 2, 6=CN)
-                    days_map = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật']
-                    day_name = days_map[date_obj.weekday()]
-
-                    # 3. Tạo chuỗi đẹp: "Thứ 2 (15/12/2025)"
-                    formatted_item = f"{day_name} ({date_obj.strftime('%d/%m/%Y')})"
-                    formatted_list.append(formatted_item)
+                    dt = datetime.strptime(d_str, '%d/%m/%Y')
+                    temp_dates.append(dt)
                 except ValueError:
                     continue
 
-                    # Nối lại thành chuỗi để lưu Database
+            temp_dates.sort()
+
+            days_map = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật']
+            for date_obj in temp_dates:
+                day_name = days_map[date_obj.weekday()]
+                formatted_item = f"{day_name} ({date_obj.strftime('%d/%m/%Y')})"
+                formatted_list.append(formatted_item)
+
         final_ngay_tap = ", ".join(formatted_list)
 
-        if dao.add_schedule(dangky_id, baiTap, soHiep, soLan, final_ngay_tap):
-            flash("Đã thêm bài tập thành công!", "success")
+        if dao.add_schedule(dangky_id, form.baiTap.data, form.nhomCo.data, form.soHiep.data, form.soLan.data,
+                            final_ngay_tap):
+            flash("Thêm bài tập thành công!", "success")
             return redirect(url_for('create_schedule', dangky_id=dangky_id))
         else:
             flash("Lỗi khi thêm lịch.", "danger")
@@ -640,7 +702,9 @@ def create_schedule(dangky_id):
                            form=form,
                            schedule=current_schedule,
                            member=dk.hoi_vien,
-                           dangky_id=dangky_id)
+                           dangky_id=dangky_id,
+                           data_map=data_map,
+                           goi_y_list=goi_y_list)
 
 @app.route('/hoi-vien/lich-tap')
 @login_required
@@ -704,65 +768,69 @@ def delete_schedule_item(id):
 @login_required
 def edit_schedule_item(id):
     lich = dao.get_schedule_item_by_id(id)
-    if not lich:
-        return redirect('/')
+    if not lich: return redirect('/')
 
     form = SuaLichTapForm()
 
-    # --- XỬ LÝ POST: KHI BẤM LƯU ---
-    if form.validate_on_submit():
-        # Dữ liệu từ Flatpickr gửi lên sẽ là: "15-12-2025, 19-12-2025" (Raw date)
-        raw_dates_str = form.ngayTap.data
+    # --- CHUẨN BỊ DỮ LIỆU GỢI Ý (Giống trang tạo lịch) ---
+    ds_bai_tap = DanhMucBaiTap.query.all()
+    goi_y_list = [b.ten_bai_tap for b in ds_bai_tap]
+    data_map = {b.ten_bai_tap: b.nhom_co for b in ds_bai_tap}
+    # -----------------------------------------------------
 
-        # Chúng ta cần format lại thành "Thứ 2 (15/12/2025)..." cho đẹp
+    # XỬ LÝ POST (LƯU)
+    if form.validate_on_submit():
+        # Xử lý ngày tháng (Code cũ giữ nguyên)
+        raw_dates_str = form.ngayTap.data
         formatted_list = []
         if raw_dates_str:
-            # Tách chuỗi dựa trên dấu phẩy hoặc khoảng trắng
             raw_list = [d.strip() for d in raw_dates_str.split(',') if d.strip()]
-
             for d_str in raw_list:
                 try:
-                    # Chuyển từ string "15-12-2025" sang đối tượng Date
                     date_obj = datetime.strptime(d_str, '%d-%m-%Y')
-
-                    # Lấy tên thứ tiếng Việt
-                    weekday_index = date_obj.weekday()  # 0=Thứ 2, 6=CN
-                    days_map = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật']
-                    day_name = days_map[weekday_index]
-
-                    # Tạo chuỗi đẹp: "Thứ 2 (15/12/2025)"
-                    formatted_item = f"{day_name} ({date_obj.strftime('%d/%m/%Y')})"
-                    formatted_list.append(formatted_item)
+                    day_name = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'][date_obj.weekday()]
+                    formatted_list.append(f"{day_name} ({date_obj.strftime('%d/%m/%Y')})")
                 except ValueError:
-                    continue  # Bỏ qua nếu lỗi định dạng
-
-        # Nối lại thành chuỗi dài để lưu DB
+                    continue
         final_ngay_tap = ", ".join(formatted_list)
 
-        if dao.update_schedule(id, form.baiTap.data, form.soHiep.data, form.soLan.data, final_ngay_tap):
+        # Gọi hàm update (thêm tham số nhomCo)
+        if dao.update_schedule(id,
+                               form.baiTap.data,
+                               form.nhomCo.data,  # <--- Cập nhật nhóm cơ
+                               form.soHiep.data,
+                               form.soLan.data,
+                               final_ngay_tap):
             flash("Cập nhật thành công!", "success")
             return redirect(url_for('create_schedule', dangky_id=lich.dangKyGoiTap_id))
         else:
             flash("Lỗi cập nhật.", "danger")
 
-    # --- XỬ LÝ GET: KHI MỞ FORM ---
+    # XỬ LÝ GET (HIỂN THỊ DỮ LIỆU CŨ)
     if request.method == 'GET':
         form.baiTap.data = lich.baiTap
+        form.nhomCo.data = lich.nhom_co
         form.soHiep.data = lich.soHiep
         form.soLan.data = lich.soLan
 
-        # Xử lý ngược: Trích xuất ngày từ chuỗi đẹp "Thứ 2 (15/12/2025)" -> "15-12-2025"
-        # Dùng Regex để tìm pattern ngày tháng dd/mm/yyyy
+        # [QUAN TRỌNG] Xử lý ngày tháng để hiện lại lên lịch
+        # Dữ liệu trong DB dạng: "Thứ 2 (22/12/2025), Thứ 4 (24/12/2025)"
         if lich.ngayTap:
+            # 1. Dùng Regex để chỉ lấy phần ngày tháng (22/12/2025)
             dates = re.findall(r'\d{2}/\d{2}/\d{4}', lich.ngayTap)
-            # Chuyển dấu / thành dấu - để Flatpickr hiểu (15/12/2025 -> 15-12-2025)
-            dates_formatted = [d.replace('/', '-') for d in dates]
-            # Gán vào form để hiển thị lên lịch
-            form.ngayTap.data = ", ".join(dates_formatted)
+
+            # 2. Đổi dấu / thành dấu - (22-12-2025) để Flatpickr hiểu
+            # 3. Nối lại bằng dấu phẩy (,)
+            form.ngayTap.data = ",".join([d.replace('/', '-') for d in dates])
+            # Kết quả: "22-12-2025,24-12-2025"
         else:
             form.ngayTap.data = ""
 
-    return render_template('HuanLuyenVien/sua_lich.html', form=form, lich=lich)
+    return render_template('HuanLuyenVien/sua_lich.html',
+                           form=form,
+                           lich=lich,
+                           goi_y_list=goi_y_list,
+                           data_map=data_map)
 
 @app.context_processor
 def inject_current_user_role():

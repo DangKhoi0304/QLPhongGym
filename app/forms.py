@@ -77,14 +77,13 @@ class StaffRegisterForm(RegisterForm):
 
 class TaoLichTapForm(FlaskForm):
     baiTap = StringField('Tên bài tập', validators=[DataRequired(), Length(max=255)])
+    nhomCo = StringField('Thuộc nhóm cơ', validators=[DataRequired()])
     soHiep = IntegerField('Số hiệp', validators=[DataRequired(), NumberRange(min=1)])
     soLan = IntegerField('Số lần/hiệp', validators=[DataRequired(), NumberRange(min=1)])
 
     # --- THAY ĐỔI Ở ĐÂY ---
     # Bỏ ngayBatDau và cacThu. Dùng 1 trường duy nhất để nhận dữ liệu từ Flatpickr
     ngayTap = StringField('Chọn ngày tập cụ thể', validators=[DataRequired()])
-
-    submit = SubmitField('Thêm bài tập')
 
 class ChonHLVForm(FlaskForm):
     # Dùng HiddenField để gửi ID của HLV khi user nhấn nút chọn
@@ -94,6 +93,7 @@ class ChonHLVForm(FlaskForm):
 
 class SuaLichTapForm(FlaskForm):
     baiTap = StringField('Tên bài tập', validators=[DataRequired(), Length(max=255)])
+    nhomCo = StringField('Thuộc nhóm cơ', validators=[DataRequired()])
     soHiep = IntegerField('Số hiệp', validators=[DataRequired(), NumberRange(min=1)])
     soLan = IntegerField('Số lần/hiệp', validators=[DataRequired(), NumberRange(min=1)])
     # Cho phép sửa ngày tập dạng văn bản (VD: HLV muốn sửa ngày 15 thành 16 thủ công)

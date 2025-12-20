@@ -124,34 +124,6 @@ def promote_to_nhanvien(user, role_str):
         db.session.rollback()
         return None
 
-
-# ----------------------------------------------------------------------
-#  Tạo Huấn luyện viên
-# ----------------------------------------------------------------------
-def create_huanluyenvien_from_user(user):
-    if not user or not getattr(user, 'id', None):
-        return False
-
-    existing = HuanLuyenVien.query.get(user.id)
-    if existing:
-        return True
-
-    try:
-        hlv = HuanLuyenVien(
-            id=user.id,
-            hoTen=(user.hoTen or '').strip(),
-            SDT=(user.SDT or '').strip(),
-            eMail=(user.eMail or '').strip()
-        )
-
-        db.session.add(hlv)
-        db.session.commit()
-        return True
-
-    except Exception:
-        db.session.rollback()
-        app.logger.exception("create_huanluyenvien_from_user error")
-        return False
 # ----------------------------------------------------------------------
 #  Xử lý gói tập - Phân trang
 # ----------------------------------------------------------------------
@@ -330,11 +302,12 @@ def get_members_by_hlv(hlv_id):
     ).all()
 
 # 4. Thêm lịch tập
-def add_schedule(dangKyId, baiTap, soHiep, soLan, ngayTap):
+def add_schedule(dangKyId, baiTap, nhom_co, soHiep, soLan, ngayTap):
     try:
         lich = LichTap(
             dangKyGoiTap_id=dangKyId,
             baiTap=baiTap,
+            nhom_co=nhom_co,
             soHiep=soHiep,
             soLan=soLan,
             ngayTap=ngayTap
@@ -355,11 +328,12 @@ def get_schedule_item_by_id(id):
     return LichTap.query.get(id)
 
 # [MỚI] 7. Cập nhật lịch tập
-def update_schedule(id, baiTap, soHiep, soLan, ngayTap):
+def update_schedule(id, baiTap,nhom_co, soHiep, soLan, ngayTap):
     try:
         lich = LichTap.query.get(id)
         if lich:
             lich.baiTap = baiTap
+            lich.nhom_co = nhom_co
             lich.soHiep = soHiep
             lich.soLan = soLan
             lich.ngayTap = ngayTap

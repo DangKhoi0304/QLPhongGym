@@ -26,13 +26,11 @@
                     {% if not current_user.NhanVienProfile and not current_user.huanluyenvien %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('hoi_vien', taikhoan=current_user.taiKhoan) }}">
-                                Dashboard HV
+                                Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('hoi_vien_lich_su', taikhoan=current_user.taiKhoan) }}">
-                                Lịch sử
-                            </a>
+                            <a class="nav-link" href="{{ url_for('hoi_vien_lich_su', taikhoan=current_user.taiKhoan) }}">Lịch sử</a>
                         </li>
                     {% endif %}
 
@@ -69,11 +67,19 @@
 
                     {# ================== 3. KHU VỰC CÁ NHÂN (USER NÀO CŨNG CÓ) ================== #}
                     <li class="nav-item ms-2">
-                        <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so', taikhoan=current_user.taiKhoan) }}">
-                            <img src="{{ current_user.avatar if current_user.avatar else '/static/images/default-avatar.jpg' }}"
+                        <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so') }}">
+                            {% set avatar_val = (current_user.avatar if current_user is defined else None) or (user_info.avatar if user_info is defined else None) %}
+                            {% if not avatar_val or avatar_val == 'default' %}
+                            <img src="{{ url_for('static', filename='images/default-avatar.jpg') }}"
                                  class="rounded-circle border me-1"
                                  style="width: 25px; height: 25px; object-fit: cover;">
                             {{ current_user.hoTen }}
+                            {% else %}
+                            <img src="{{ avatar_val }}"
+                                 class="rounded-circle border me-1"
+                                 style="width: 25px; height: 25px; object-fit: cover;">
+                            {{ current_user.hoTen }}
+                            {% endif %}
                         </a>
                     </li>
 
