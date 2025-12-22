@@ -22,8 +22,8 @@
                 
                 <div class="card-body text-center">
                     <h5 class="card-title fw-bold">{{ hlv.hoTen }}</h5>
-                    <p class="card-text text-muted mb-1"><i class="fa fa-envelope me-1"></i> {{ hlv.eMail }}</p>
-                    <p class="card-text text-muted"><i class="fa fa-phone me-1"></i> {{ hlv.SDT }}</p>
+                    <p class="card-text text-muted mb-1"><i class="fa fa-envelope me-1"></i> {{ hlv.user.eMail if hlv.user else 'Chưa cập nhật' }}</p>
+                    <p class="card-text text-muted"><i class="fa fa-phone me-1"></i> {{ hlv.user.SDT if hlv.user else 'Chưa cập nhật' }}</p>
                     
                     <hr class="my-3">
                     

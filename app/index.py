@@ -25,8 +25,6 @@ DEFAULT_PASSWORD = "123456"
 def index():
     page = request.args.get('page', 1, type=int)
     ds_goi_tap = dao.load_goi_tap(page=page)
-
-    # 2. Truyền biến 'packages' ra template index.html
     return render_template('index.html',
                            packages=ds_goi_tap,
                            pages=math.ceil(dao.count_goi_tap()/app.config['PAGE_SIZE'])
@@ -41,7 +39,6 @@ def inject_enums():
 def logout_process():
     logout_user()
     return redirect('/login')
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login_process():
@@ -71,23 +68,11 @@ def login_process():
         # (Dựa vào backref 'NhanVienProfile' trong models.py)
         if user.NhanVienProfile:
             vai_tro = user.NhanVienProfile.vaiTro
-
-            # Nếu là Admin
             if vai_tro == UserRole.NGUOIQUANTRI:
                 return redirect('/admin')
-
-            # Nếu là Thu ngân hoặc Lễ tân
-            # (Bạn có thể tách riêng if nếu muốn trang khác nhau, ở đây mình gom chung)
-            elif vai_tro == UserRole.THUNGAN or vai_tro == UserRole.LETAN:
+            elif vai_tro in [UserRole.THUNGAN, UserRole.LETAN, UserRole.HUANLUYENVIEN]:
                 return redirect(f'/nhan-vien/{taiKhoan}')
 
-        # 2. Kiểm tra: Có phải Huấn Luyện Viên không? [MỚI]
-        # (Dựa vào backref 'huanluyenvien' trong models.py)
-        if getattr(user, 'huanluyenvien', None):
-            # Chuyển hướng đến trang dashboard dành riêng cho HLV
-            return redirect(f'/nhan-vien/{taiKhoan}')
-
-        # 3. Mặc định: Là Hội Viên
         return redirect(url_for('hoi_vien', taikhoan=taiKhoan))
 
     # Nếu là GET request thì trả về trang login
@@ -98,8 +83,11 @@ def load_user(user_id):
     return dao.get_user_by_id(user_id)
 
 @app.route('/nhan-vien/<taikhoan>')
+@login_required
 def thong_tin_nhan_vien(taikhoan):
-    return render_template('nhan_vien.html',taikhoan=taikhoan)
+    if current_user.taiKhoan != taikhoan:
+        return redirect('/')
+    return render_template('nhan_vien.html', taikhoan=taikhoan)
 
 @app.route('/hoi-vien/<taikhoan>')
 @login_required
@@ -584,8 +572,7 @@ def choose_pt():
 @app.route('/hlv-panel/tao-lich/<int:dangky_id>', methods=['GET', 'POST'])
 @login_required
 def create_schedule(dangky_id):
-    # 1. Kiểm tra quyền: Phải là HLV mới được vào
-    if not getattr(current_user, 'huanluyenvien', None):
+    if not (current_user.NhanVienProfile and current_user.NhanVienProfile.vaiTro == UserRole.HUANLUYENVIEN):
         return redirect('/')
 
     form = TaoLichTapForm()
@@ -731,13 +718,11 @@ def member_view_schedule():
 @app.route('/hlv/danh-sach-hoi-vien')
 @login_required
 def danh_sach_hoi_vien():
-    # 1. Kiểm tra quyền: Phải là HLV mới được vào
-    if not getattr(current_user, 'huanluyenvien', None):
-        flash("Bạn không có quyền truy cập trang này", "danger")
+    if not (current_user.NhanVienProfile and current_user.NhanVienProfile.vaiTro == UserRole.HUANLUYENVIEN):
         return redirect('/')
 
     # 2. Lấy danh sách hội viên (đặt tên biến tiếng Việt cho dễ hiểu)
-    ds_hoi_vien = dao.get_members_by_hlv(current_user.id)
+    ds_hoi_vien = dao.get_members_by_hlv(current_user.NhanVienProfile.id)
 
     # 3. Render giao diện (đổi tên file html luôn)
     return render_template('HuanLuyenVien/danh_sach_hoi_vien.html', ds_hoi_vien=ds_hoi_vien)

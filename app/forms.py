@@ -70,7 +70,8 @@ class StaffRegisterForm(RegisterForm):
     role = SelectField('Vai trò', choices=[
         ('NGUOIQUANTRI', 'NGUOIQUANTRI'),
         ('THUNGAN', 'THUNGAN'),
-        ('LETAN', 'LETAN')
+        ('LETAN', 'LETAN'),
+        ('HUANLUYENVIEN', 'Huấn Luyện Viên')
     ], validators=[DataRequired()])
     submit = SubmitField('Đăng ký nhân viên')
 
@@ -80,10 +81,8 @@ class TaoLichTapForm(FlaskForm):
     nhomCo = StringField('Thuộc nhóm cơ', validators=[DataRequired()])
     soHiep = IntegerField('Số hiệp', validators=[DataRequired(), NumberRange(min=1)])
     soLan = IntegerField('Số lần/hiệp', validators=[DataRequired(), NumberRange(min=1)])
-
-    # --- THAY ĐỔI Ở ĐÂY ---
-    # Bỏ ngayBatDau và cacThu. Dùng 1 trường duy nhất để nhận dữ liệu từ Flatpickr
     ngayTap = StringField('Chọn ngày tập cụ thể', validators=[DataRequired()])
+    submit = SubmitField('Tạo lịch tập')
 
 class ChonHLVForm(FlaskForm):
     # Dùng HiddenField để gửi ID của HLV khi user nhấn nút chọn

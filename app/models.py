@@ -17,13 +17,11 @@ class BaseModel(db.Model):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
 
-
 class UserRole(RoleEnum):
     NGUOIQUANTRI = 1
     THUNGAN = 2
     LETAN = 3
     HUANLUYENVIEN = 4
-
 
 class User(BaseModel, UserMixin):
     __tablename__ = 'users'
@@ -38,8 +36,6 @@ class User(BaseModel, UserMixin):
     taiKhoan = Column(String(50), unique=True, nullable=False)
     matKhau = Column(String(255), nullable=False)
     avatar = Column(String(255), nullable=False)
-
-    # goiTap = Column(Integer, nullable=True)
 
     def __str__(self):
         return self.hoTen
@@ -116,39 +112,30 @@ class User(BaseModel, UserMixin):
         except Exception:
             return False
 
-
 class NhanVien(BaseModel):
     __tablename__ = 'nhanvien'
 
     vaiTro = Column(Enum(UserRole))
-    user_id = Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)
+
     user = relationship('User', backref=backref('NhanVienProfile', uselist=False))
 
     def get_VaiTro(self):
         return self.vaiTro
 
-
-class HuanLuyenVien(db.Model):
-    __tablename__ = 'huanluyenvien'
-    id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)  # <-- PK = FK users.id
-    hoTen = db.Column(db.String(255))
-    SDT = db.Column(db.String(20))
-    eMail = db.Column(db.String(255))
-
-    user = db.relationship('User', backref=db.backref('huanluyenvien', uselist=False))
-
+    @property
+    def hoTen(self):
+        return self.user.hoTen if self.user else ""
 
 class GoiTap(BaseModel):
     __tablename__ = 'goitap'
 
-    tenGoiTap = Column(db.String(255), nullable=False)
+    tenGoiTap = Column(String(255), nullable=False)
     thoiHan = Column(Integer, nullable=False)
-
     giaTienGoi = Column(Float, nullable=False)
 
     def __str__(self):
         return f"{self.tenGoiTap} ({self.thoiHan} ngày)"
-
 
 class DangKyGoiTap(BaseModel):
     __tablename__ = 'dangkygoitap'
@@ -156,19 +143,20 @@ class DangKyGoiTap(BaseModel):
     ngayDangKy = Column(Date, default=datetime.now, nullable=False)
     ngayKetThuc = Column(Date, nullable=False)
     trangThai = Column(Boolean, default=True)  # True: Đang kích hoạt, False: Hết hạn/Hủy
-    hoiVien_id = Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    goiTap_id = Column(db.Integer, db.ForeignKey('goitap.id'), nullable=False)
-    huanLuyenVien_id = Column(db.Integer, db.ForeignKey('huanluyenvien.id'), nullable=True)
+
+    hoiVien_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    goiTap_id = Column(Integer, ForeignKey('goitap.id'), nullable=False)
+    huanLuyenVien_id = Column(Integer, ForeignKey('nhanvien.id'), nullable=True)
+
     hoi_vien = relationship('User', backref='DangKyGoiTap', lazy=True)
     goi_tap = relationship('GoiTap', backref='DangKyGoiTap', lazy=True)
-    huan_luyen_vien = relationship('HuanLuyenVien', backref='ds_hoi_vien_dang_ky', lazy=True)
+    huan_luyen_vien = relationship('NhanVien', backref='ds_hoi_vien_dang_ky', lazy=True)
 
     def tinh_ngay_het_han(self):
         if self.goi_tap and self.goi_tap.thoiHan:
             if not self.ngayDangKy:
                 self.ngayDangKy = datetime.now().date()
         self.ngayKetThuc = self.ngayDangKy + timedelta(days=int(self.goi_tap.thoiHan))
-
 
 class LichTap(BaseModel):
     __tablename__ = 'lichtap'
@@ -178,9 +166,11 @@ class LichTap(BaseModel):
     soHiep = Column(Integer, nullable=False)
     soLan = Column(Integer, nullable=False)  # Số lần/hiệp
     ngayTap = Column(String(100), nullable=False)  # "Thứ 2, 4, 6"
-    dangKyGoiTap_id = Column(db.Integer, db.ForeignKey('dangkygoitap.id'), nullable=False)
-    dang_ky = relationship('DangKyGoiTap', backref='ds_lich_tap', lazy=True)
+
+    dangKyGoiTap_id = Column(Integer, ForeignKey('dangkygoitap.id'), nullable=False)
     danh_muc_id = Column(Integer, ForeignKey('danhmucbaitap.id'), nullable=True)
+
+    dang_ky = relationship('DangKyGoiTap', backref='ds_lich_tap', lazy=True)
     danh_muc = relationship('DanhMucBaiTap')
 
 class ThanhToan(BaseModel):
@@ -189,31 +179,28 @@ class ThanhToan(BaseModel):
     ngayThanhToan = Column(Date, default=datetime.now)
     phuongThuc = Column(String(50), default='Trực Tuyên')
 
-    hoiVien_id = Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    dangKyGoiTap_id = Column(db.Integer, db.ForeignKey('dangkygoitap.id'), nullable=False)
-    nhanVien_id = Column(db.Integer, db.ForeignKey('nhanvien.id'), nullable=True)
+    hoiVien_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    dangKyGoiTap_id = Column(Integer,ForeignKey('dangkygoitap.id'), nullable=False)
+    nhanVien_id = Column(Integer, ForeignKey('nhanvien.id'), nullable=True)
 
     hoi_vien = relationship('User', backref='ThanhToan', lazy=True)
     dang_ky = relationship('DangKyGoiTap', backref='ThanhToan', lazy=True)
     nhan_vien = relationship('NhanVien', backref='ThanhToan', lazy=True)
 
-class DanhMucBaiTap(db.Model):
+class DanhMucBaiTap(BaseModel):
     __tablename__ = 'danhmucbaitap'
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    ten_bai_tap = db.Column(db.String(100), nullable=False)  # VD: Squat, Hít đất
-    nhom_co = db.Column(db.String(50))  # VD: Ngực, Chân, Tay...
+    ten_bai_tap = Column(String(100), nullable=False)  # VD: Squat, Hít đất
+    nhom_co = Column(String(50))  # VD: Ngực, Chân, Tay...
 
     def __str__(self):
         return self.ten_bai_tap
 
-
-class QuyDinh(db.Model):
+class QuyDinh(BaseModel):
     __tablename__ = 'quydinh'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    # Mình sẽ lưu tên tiếng Việt có dấu vào đây luôn cho Admin dễ đọc
-    ten_quy_dinh = db.Column(db.String(100), nullable=False, unique=True)
-    gia_tri = db.Column(db.Integer, nullable=False)
+
+    ten_quy_dinh = Column(String(100), nullable=False, unique=True)
+    gia_tri = Column(Integer, nullable=False)
 
     def __str__(self): return self.ten_quy_dinh
 
@@ -332,15 +319,7 @@ if __name__ == '__main__':
         # u_hlv.set_password('123456')  # Mật khẩu test
         # db.session.add(u_hlv)
         # db.session.commit()  # Commit để có ID
-        # 
-        # # Bước 2: Thêm vào bảng HuanLuyenVien
-        # hlv_profile = HuanLuyenVien(
-        #     id=u_hlv.id,  # Lấy ID của user vừa tạo
-        #     hoTen=u_hlv.hoTen,
-        #     SDT=u_hlv.SDT,
-        #     eMail=u_hlv.eMail
-        # )
-        # db.session.add(hlv_profile)
+        #
         # nv_hlv = NhanVien(user_id=u_hlv.id, vaiTro=UserRole.HUANLUYENVIEN)
         # db.session.add(nv_hlv)
         #

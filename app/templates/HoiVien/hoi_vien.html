@@ -51,19 +51,6 @@
 <header>
     <div class="container py-5">
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="mb-4">
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} alert-dismissible fade show">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        {% endwith %}
-
         <div class="welcome-card mb-5 animate__animated animate__fadeInDown">
             <div class="welcome-header">
                 <div class="welcome-text">

@@ -5,7 +5,7 @@ from flask_admin.menu import MenuLink
 from flask_login import current_user
 from wtforms import SelectField
 from app import app, db
-from app.models import User, GoiTap, UserRole, DanhMucBaiTap, QuyDinh, NhanVien, HuanLuyenVien
+from app.models import User, GoiTap, UserRole, DanhMucBaiTap, QuyDinh, NhanVien
 
 DEFAULT_AVATAR = "default"
 
@@ -63,7 +63,7 @@ class UserView(AuthenticatedModelView):
     # Loại bỏ avatar để không hiện ô nhập
     form_columns = ['hoTen', 'taiKhoan', 'matKhau', 'chon_quyen', 'SDT', 'eMail', 'gioiTinh', 'ngaySinh', 'diaChi']
 
-    form_excluded_columns = ['NhanVienProfile', 'huanluyenvien', 'DangKyGoiTap', 'ThanhToan']
+    form_excluded_columns = ['NhanVienProfile', 'DangKyGoiTap', 'ThanhToan']
 
     form_extra_fields = {
         'chon_quyen': SelectField('Phân Quyền', choices=[
@@ -109,36 +109,23 @@ class UserView(AuthenticatedModelView):
         # Xử lý Phân Quyền
         selected_role = form.chon_quyen.data
 
-        if is_created:
-            db.session.add(model)
-            db.session.commit()
-
-        nv = NhanVien.query.filter_by(user_id=model.id).first()
-
         if selected_role == 'HOIVIEN':
-            if nv:
-                db.session.delete(nv)
-                hlv = HuanLuyenVien.query.filter_by(id=model.id).first()
-                if hlv: db.session.delete(hlv)
+            # Nếu chọn Hội viên -> Xóa record NhanVien nếu đang tồn tại
+            if model.NhanVienProfile:
+                db.session.delete(model.NhanVienProfile)
         else:
+            # Nếu chọn vai trò Nhân viên (Admin, Thu Ngân, HLV...)
             role_enum = getattr(UserRole, selected_role)
 
-            if nv:
-                nv.vaiTro = role_enum
+            if model.NhanVienProfile:
+                # Nếu đã là nhân viên -> Cập nhật vai trò mới
+                model.NhanVienProfile.vaiTro = role_enum
             else:
-                new_nv = NhanVien(user_id=model.id, vaiTro=role_enum)
+                # Nếu chưa là nhân viên -> Tạo record NhanVien mới
+                # Dùng relationship assignment để SQLAlchemy tự gán user_id sau khi flush
+                new_nv = NhanVien(vaiTro=role_enum)
+                model.NhanVienProfile = new_nv
                 db.session.add(new_nv)
-
-            if selected_role == 'HUANLUYENVIEN':
-                hlv = HuanLuyenVien.query.filter_by(id=model.id).first()
-                if not hlv:
-                    new_hlv = HuanLuyenVien(
-                        id=model.id,
-                        hoTen=model.hoTen,
-                        SDT=model.SDT,
-                        eMail=model.eMail
-                    )
-                    db.session.add(new_hlv)
 
 
 # --- CÁC VIEW QUẢN LÝ KHÁC ---

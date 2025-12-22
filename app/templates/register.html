@@ -10,14 +10,6 @@
          style="width: 100%; max-width: 600px; border-radius: 12px; background: rgba(255,255,255,0.95);">
         <h2 class="text-center text-primary fw-bold mb-3">Đăng Ký Hội Viên</h2>
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
-
         <form method="POST" action="" enctype="multipart/form-data">
             {{ form.hidden_tag() }}
 

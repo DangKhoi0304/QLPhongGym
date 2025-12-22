@@ -5,12 +5,8 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-{# Logic xác định role name #}
+{# Logic xác định role name: Lấy từ NhanVienProfile #}
 {% set role_name = current_user.NhanVienProfile.vaiTro.name if current_user.NhanVienProfile else '' %}
-{# Nếu không phải NhanVien mà là HLV (dựa vào bảng huanluyenvien), gán role thủ công #}
-{% if not role_name and current_user.huanluyenvien %}
-    {% set role_name = 'HUANLUYENVIEN' %}
-{% endif %}
 
 <style>
     /* --- CSS CỐT LÕI (GIỮ NGUYÊN) --- */

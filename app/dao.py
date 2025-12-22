@@ -1,5 +1,5 @@
 
-from app.models import User, HuanLuyenVien, GoiTap, DangKyGoiTap, ThanhToan, LichTap
+from app.models import User, GoiTap, DangKyGoiTap, ThanhToan, LichTap
 from app import app
 from uuid import uuid4
 from datetime import date, datetime, timedelta
@@ -9,25 +9,15 @@ from sqlalchemy import func
 
 DEFAULT_AVATAR = "default"
 
-import hashlib
-
-
 # ----------------------------------------------------------------------
 #  AUTH — sử dụng check_password() để hỗ trợ cả MD5 và mật khẩu mới
 # ----------------------------------------------------------------------
 def auth_nhan_vien(taikhoan, matkhau):
-    # Kiểm tra nhân viên trước
-
 
     user = User.query.filter_by(taiKhoan=taikhoan).first()
     if user and user.check_password(matkhau):
-        # if user.NhanVienProfile:
-        #     return user.NhanVienProfile
-
-        return user
+            return user
     return None
-
-
 
 # ----------------------------------------------------------------------
 #  Functions tìm user
@@ -53,12 +43,10 @@ def get_user_by_phone(phone):
         return None
     return _find_any(User, SDT=phone)
 
-
 # ----------------------------------------------------------------------
 #  CREATE USER — lưu mật khẩu bằng set_password() (PBKDF2)
 # ----------------------------------------------------------------------
 def create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, goiTap=None, avatar=None):
-
     # kiểm tra trùng
     if get_user_by_username(taiKhoan) or (email and get_user_by_email(email)) or (sdt and get_user_by_phone(sdt)):
         return None
@@ -140,41 +128,40 @@ def load_goi_tap(page=1):
     start = (page - 1) * page_size
 
     return GoiTap.query.slice(start, start + page_size).all()
+
+# Lọc những gói tập còn thời hạn
+def get_active_package_by_user_id(user_id):
+    active_package = DangKyGoiTap.query.filter(
+        DangKyGoiTap.hoiVien_id == user_id,
+        DangKyGoiTap.trangThai == True,
+        DangKyGoiTap.ngayKetThuc >= datetime.now().date(),
+    ).order_by(DangKyGoiTap.ngayKetThuc).first()
+
+    return active_package
+
 # Đăng ký gói tập mới
 def add_receipt(user_id, goiTap_id, nhanVien_id = None, payment_method="Tiền mặt"):
 
     try:
         is_nhan_vien = NhanVien.query.filter_by(user_id=user_id).first()
-        is_hlv = HuanLuyenVien.query.get(user_id)
-        if is_nhan_vien or is_hlv:
+        if is_nhan_vien:
             return False, "Tài khoản thộc Nhân Viên/HLV không được phép đăng ký gói tập!"
-        goi_het_han = DangKyGoiTap.query.filter(
+        DangKyGoiTap.query.filter(
             DangKyGoiTap.hoiVien_id == user_id,
             DangKyGoiTap.trangThai == True,  # Đang là 1
-            DangKyGoiTap.ngayKetThuc < datetime.now().date()  # Nhưng đã quá hạn
-        ).all()
+            DangKyGoiTap.ngayKetThuc < datetime.now().date()
+        ).update({DangKyGoiTap.trangThai: False}, synchronize_session=False)
 
-        # Nếu tìm thấy, chuyển hết sang False (0)
-        if goi_het_han:
-            for goi in goi_het_han:
-                goi.trangThai = False
-
-            # Lưu thay đổi ngay lập tức để dữ liệu bên dưới query được chính xác
-            db.session.commit()
-
-        goi_tap_dang_su_dung = DangKyGoiTap.query.filter(
-            DangKyGoiTap.hoiVien_id == user_id,
-            DangKyGoiTap.ngayKetThuc >=datetime.now().date(),
-            DangKyGoiTap.trangThai==True
-        ).first()
-        if goi_tap_dang_su_dung:
-            so_ngay = (goi_tap_dang_su_dung.ngayKetThuc - datetime.now().date()).days
+        active_package = get_active_package_by_user_id(user_id)
+        if active_package:
+            so_ngay = (active_package.ngayKetThuc - datetime.now().date()).days
             msg = f"Gói tập hiện tại còn {so_ngay} ngày. Vui lòng sử dụng hết trước khi đăng ký mới!"
             return False, msg
 
         goiTap = GoiTap.query.get(goiTap_id)
         if not goiTap:
             return False, "Gói tập không tồn tại!!!"
+
         ngayDangKy = datetime.now().date()
         ngayKetThuc = ngayDangKy + timedelta(days=goiTap.thoiHan)
 
@@ -204,15 +191,6 @@ def add_receipt(user_id, goiTap_id, nhanVien_id = None, payment_method="Tiền m
         db.session.rollback()
         app.logger.exception("add_Receipt error: %s", ex)
         return False
-# Lọc những gói tập còn thời hạn
-def get_active_package_by_user_id(user_id):
-    active_package = DangKyGoiTap.query.filter(
-        DangKyGoiTap.hoiVien_id == user_id,
-        DangKyGoiTap.trangThai == True,
-        DangKyGoiTap.ngayKetThuc >= datetime.now().date(),
-    ).order_by(DangKyGoiTap.ngayKetThuc).first()
-
-    return active_package
 
 # ----------------------------------------------------------------------
 #  Xử lý Thu Ngân
@@ -220,16 +198,13 @@ def get_active_package_by_user_id(user_id):
 
 def get_all_member(kw=None):
     member = (db.session.query(User).join(NhanVien, User.id == NhanVien.user_id, isouter=True)
-                                    .join(HuanLuyenVien, User.id == HuanLuyenVien.id, isouter=True)
-              .filter(NhanVien.id==None)
-              .filter(HuanLuyenVien.id==None))
+              .filter(NhanVien.id==None))
     if kw:
         kw = kw.strip()
         member = member.filter(User.hoTen.contains(kw)|
                                User.SDT.contains(kw)|
                                User.taiKhoan.contains(kw)
         )
-
     return member.order_by(User.id).all()
 
 def get_payment_history_by_id(user_id):
@@ -249,12 +224,8 @@ def stats_member_growth(year=datetime.now().year):
     """Thống kê số lượng hội viên đăng ký mới theo tháng"""
     member_growth = (db.session.query(func.extract('month', User.NgayDangKy),func.count(User.id)
                   ).join(NhanVien, User.id == NhanVien.user_id, isouter=True)
-                    .join(HuanLuyenVien, User.id ==HuanLuyenVien.id, isouter=True)
-                     .filter(func.extract('year', User.NgayDangKy) == year,
-                             NhanVien.id ==None,
-                             HuanLuyenVien.id == None) #Chỉ lấy những tài khoản không phải là Nhân Viên / HLV
-                     .order_by(func.extract('month', User.NgayDangKy)))
-
+                     .filter(func.extract('year', User.NgayDangKy) == year, NhanVien.id ==None) #Chỉ lấy những tài khoản không phải là Nhân Viên / HLV
+                    )
     return member_growth.group_by(func.extract('month', User.NgayDangKy)).all()
 
 def count_active_members():
@@ -270,22 +241,17 @@ def count_active_members():
 
 # 1. Lấy danh sách tất cả HLV để hội viên chọn
 def load_all_huanluyenvien():
-    return HuanLuyenVien.query.all()
+    return NhanVien.query.filter_by(vaiTro=UserRole.HUANLUYENVIEN).all()
 
 # 2. Gán HLV cho hội viên (cập nhật vào bảng DangKyGoiTap đang active)
 def assign_pt_for_member(user_id, hlv_id):
+    active_pack = get_active_package_by_user_id(user_id)
     try:
-        # Tìm gói tập đang kích hoạt của user
-        active_pack = DangKyGoiTap.query.filter(
-            DangKyGoiTap.hoiVien_id == user_id,
-            DangKyGoiTap.trangThai == True,
-            DangKyGoiTap.ngayKetThuc >= datetime.now().date()
-        ).first()
-
         if active_pack:
             active_pack.huanLuyenVien_id = hlv_id
             db.session.commit()
             return True
+
         return False
     except Exception as ex:
         db.session.rollback()
@@ -338,7 +304,8 @@ def update_schedule(id, baiTap,nhom_co, soHiep, soLan, ngayTap, danh_muc_id=None
             lich.soHiep = soHiep
             lich.soLan = soLan
             lich.ngayTap = ngayTap
-            lich.danh_muc_id = danh_muc_id
+            if danh_muc_id:  # Chỉ cập nhật nếu có giá trị
+                lich.danh_muc_id = danh_muc_id
             db.session.commit()
             return True
     except Exception as ex:

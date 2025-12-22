@@ -74,11 +74,11 @@
                         <div class="text-start bg-white p-3 rounded-3 shadow-sm border">
                             <div class="d-flex align-items-center mb-2">
                                 <div class="bg-light rounded-circle p-2 me-3 text-primary"><i class="bi bi-envelope-fill"></i></div>
-                                <div class="text-truncate">{{ hlv.eMail }}</div>
+                                <div class="text-truncate">{{ hlv.user.eMail if hlv.user else 'Chưa cập nhật' }}</div>
                             </div>
                             <div class="d-flex align-items-center">
                                 <div class="bg-light rounded-circle p-2 me-3 text-success"><i class="bi bi-telephone-fill"></i></div>
-                                <div>{{ hlv.SDT }}</div>
+                                <div>{{ hlv.user.SDT if hlv.user else 'Chưa cập nhật' }}</div>
                             </div>
                         </div>
                     {% else %}
