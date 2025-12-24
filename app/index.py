@@ -7,7 +7,7 @@ from app.models import UserRole, NhanVien, GoiTap, DangKyGoiTap, DanhMucBaiTap, 
 from flask_login import login_user, logout_user, current_user, login_required
 
 from app.forms import RegisterForm, StaffRegisterForm, RegisterFormStaff, ChangeInfoForm, ChangePasswordForm, \
-    TaoLichTapForm, ChonHLVForm, SuaLichTapForm, GiaHanForm
+    TaoLichTapForm, ChonHLVForm, SuaLichTapForm, GiaHanForm, ThanhToanNoForm
 from app.utils_mail import send_mail_gmail
 
 from uuid import uuid4
@@ -251,6 +251,8 @@ def payment_management():
         return redirect('/')
 
     form = GiaHanForm()
+    form_no = ThanhToanNoForm()
+
     packages = dao.get_all_packages()
     form.goiTap_id.choices = [
         (p.id, f"{p.tenGoiTap} - {int(p.giaTienGoi):,} VNĐ") for p in packages
@@ -260,12 +262,14 @@ def payment_management():
         user_id = form.user_id.data
         goiTap_id = form.goiTap_id.data
         phuong_thuc = form.phuong_thuc.data
+        amount = form.soTien.data
 
         success, msg = dao.add_receipt(
             user_id=user_id,
             goiTap_id=goiTap_id,
             nhanVien_id=current_user.NhanVienProfile.id,
-            payment_method=phuong_thuc
+            payment_method=phuong_thuc,
+            tien_dong=amount
         )
 
         if success:
@@ -288,17 +292,40 @@ def payment_management():
     if members_raw:
         for m in members_raw:
             active_pack = dao.get_active_package_by_user_id(m.id)
+            debt_info = None
+
+            if active_pack:
+                debt_info = dao.get_debt_info(active_pack.id)
             members_data.append({
                 'info': m,
-                'active_pack': active_pack
+                'active_pack': active_pack,
+                'debt_info': debt_info
             })
 
     # Truyền biến form sang template
     return render_template('ThuNgan/quan_ly_thanh_toan.html',
                            members=members_data,
-                           form=form,  # <-- Truyền form vào đây
+                           form=form,
+                           form_no = form_no,# <-- Truyền form vào đây
                            keyword=keyword)
 
+
+@app.route('/thu-ngan/tra-no', methods=['POST'])
+@login_required
+def process_debt_payment():
+    form = ThanhToanNoForm()
+    if form.validate_on_submit():
+        dk_id = form.dangKyGoiTap_id.data
+        amount = form.soTienTra.data
+
+        if dao.add_debt_payment(dk_id, amount, current_user.NhanVienProfile.id):
+            flash("Thu tiền nợ thành công!", "success")
+        else:
+            flash("Lỗi hệ thống!", "danger")
+    else:
+        flash("Dữ liệu không hợp lệ", "danger")
+
+    return redirect(url_for('payment_management'))
 
 @app.route('/api/payment-history/<int:user_id>')
 @login_required
@@ -450,6 +477,13 @@ def register():
 @app.route('/dangky/nhanvien', methods=['GET','POST'])
 def staff_register():
     form = RegisterFormStaff()
+
+    ds_goi_tap = dao.get_all_packages()
+    form.goiTap.choices = [(p.id, f"{p.tenGoiTap} - {int(p.giaTienGoi):,} VNĐ") for p in ds_goi_tap]
+
+    ds_hlv = dao.load_all_huanluyenvien()
+    form.huanLuyenVien.choices = [(0, 'Tự Tập')] + [(hlv.id, f"{hlv.user.hoTen}") for hlv in ds_hlv]
+
     if form.validate_on_submit():
         hoTen = form.hoTen.data
         gioiTinh = form.gioiTinh.data
@@ -458,8 +492,9 @@ def staff_register():
         sdt = form.SDT.data
         email = form.eMail.data
         taiKhoan = form.taiKhoan.data
-        goiTap = form.goiTap.data
+        goiTap_id = form.goiTap.data
         phuongThuc = form.phuongThuc.data
+        hlv_id = form.huanLuyenVien.data
 
         matKhau = DEFAULT_PASSWORD
 
@@ -502,11 +537,14 @@ def staff_register():
         if user:
             try:
                 nhanVien_id = current_user.NhanVienProfile.id if current_user.NhanVienProfile else None
+                if hlv_id == 0:
+                    hlv_id = None
                 success, msg = dao.add_receipt(
                     user_id=user.id,
-                    goiTap_id=goiTap,
+                    goiTap_id=goiTap_id,
                     nhanVien_id=nhanVien_id,
-                    payment_method=phuongThuc
+                    payment_method=phuongThuc,
+                    hlv_id=hlv_id
                 )
                 if success:
                     flash(f"Đăng ký thành công cho hội viên {hoTen}!", "success")

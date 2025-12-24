@@ -48,11 +48,12 @@ class RegisterFormStaff(FlaskForm):
                              default='Tiền mặt')
     goiTap = SelectField(
         'Gói tập',
-        choices=[('1','1 tháng'),('2','3 tháng'),('3','6 tháng'),('4','1 năm')],
+        choices=[],
+        coerce=int,
         validators=[DataRequired()]
     )
+    huanLuyenVien = SelectField('Huấn Luyện Viên',coerce=int, validators=[Optional()] )
     submit = SubmitField('Đăng ký hội viên')
-
 
 class GiaHanForm(FlaskForm):
     user_id = HiddenField('User ID', validators=[DataRequired()])
@@ -63,7 +64,13 @@ class GiaHanForm(FlaskForm):
         default='Tiền mặt',
         validators=[DataRequired()]
     )
+    soTien = IntegerField('Số tiền thanh toán', validators=[Optional(), NumberRange(min=0)])
     submit = SubmitField('Xác Nhận Thanh Toán')
+
+class ThanhToanNoForm(FlaskForm):
+    dangKyGoiTap_id = HiddenField('Mã Đăng Ký', validators=[DataRequired()])
+    soTienTra = IntegerField('Số tiền trả thêm', validators=[DataRequired(), NumberRange(min=1000)])
+    submit = SubmitField('Thu Tiền')
 
 class StaffRegisterForm(RegisterForm):
     # kế thừa các trường trên, thêm chọn role
@@ -74,7 +81,6 @@ class StaffRegisterForm(RegisterForm):
         ('HUANLUYENVIEN', 'Huấn Luyện Viên')
     ], validators=[DataRequired()])
     submit = SubmitField('Đăng ký nhân viên')
-
 
 class TaoLichTapForm(FlaskForm):
     baiTap = StringField('Tên bài tập', validators=[DataRequired(), Length(max=255)])
@@ -88,7 +94,6 @@ class ChonHLVForm(FlaskForm):
     # Dùng HiddenField để gửi ID của HLV khi user nhấn nút chọn
     hlv_id = HiddenField('Mã HLV', validators=[DataRequired()])
     submit = SubmitField('Chọn HLV này')
-
 
 class SuaLichTapForm(FlaskForm):
     baiTap = StringField('Tên bài tập', validators=[DataRequired(), Length(max=255)])

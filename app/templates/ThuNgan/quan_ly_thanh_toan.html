@@ -95,9 +95,10 @@
     }
 
     .status-badge {
-        font-size: 0.9rem;
-        padding: 0.5em 1em;
+        font-size: 0.85rem;
+        padding: 0.5em 0.8em;
         border-radius: 8px;
+        display: inline-block;
     }
 
     /* CSS MỚI CHO LỊCH SỬ */
@@ -108,7 +109,7 @@
 <div class="container py-5">
     <div class="text-center mb-5">
         <h2 class="fw-bold text-dark mb-2">Quản Lý Thanh Toán - Gia Hạn</h2>
-        <p class="text-muted">Tra cứu nhanh hội viên để gia hạn gói tập</p>
+        <p class="text-muted">Tra cứu nhanh hội viên để gia hạn gói tập hoặc thu nợ</p>
     </div>
 
     <div class="mb-5">
@@ -126,15 +127,15 @@
     </div>
 
     <div class="row justify-content-center">
-        <div class="col-10">
+        <div class="col-12">
             <div class="card card-list bg-white">
                 <div class="table-responsive">
                     <table class="table custom-table mb-0">
                         <thead>
                         <tr>
-                            <th class="ps-5" style="width: 45%;">Thông tin Hội viên</th>
-                            <th style="width: 35%;">Gói tập hiện tại</th>
-                            <th class="text-center" style="width: 20%;">Hành động</th>
+                            <th class="ps-5" style="width: 35%;">Thông tin Hội viên</th>
+                            <th style="width: 35%;">Gói tập & Tài chính</th>
+                            <th class="text-center" style="width: 30%;">Hành động</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -142,6 +143,7 @@
                         {% for item in members %}
                         {% set u = item.info %}
                         {% set pack = item.active_pack %}
+                        {% set debt = item.debt_info %}
                         <tr>
                             <td class="ps-5">
                                 <div class="d-flex align-items-center">
@@ -162,41 +164,62 @@
                                     </div>
                                 </div>
                             </td>
-
                             <td>
                                 {% if pack %}
-                                <div class="d-flex align-items-start flex-column">
-                                                <span class="badge bg-success bg-opacity-10 text-success status-badge mb-2">
-                                                    <i class="fas fa-check-circle me-1"></i> Đang hoạt động
+                                <div class="d-flex flex-column">
+                                    <div class="fs-6 text-dark fw-bold mb-1">{{ pack.goi_tap.tenGoiTap }}</div>
+                                    <small class="text-muted mb-2">Hết hạn: {{ pack.ngayKetThuc.strftime('%d/%m/%Y') }}</small>
+
+                                    {% if debt %}
+                                        {% if debt.con_no > 0 %}
+                                            <div>
+                                                <span class="badge bg-danger bg-opacity-10 text-danger status-badge border border-danger">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i> Còn nợ: {{ "{:,.0f}".format(debt.con_no) }} đ
                                                 </span>
-                                    <div class="fs-6 text-dark fw-semibold">{{ pack.goi_tap.tenGoiTap }}</div>
-                                    <small class="text-muted">Hết hạn: {{ pack.ngayKetThuc.strftime('%d/%m/%Y')
-                                        }}</small>
+                                                <div class="small text-muted mt-1 ps-1">
+                                                    Đã trả: <span class="text-success fw-bold">{{ "{:,.0f}".format(debt.da_tra) }} đ</span>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div>
+                                                <span class="badge bg-success bg-opacity-10 text-success status-badge">
+                                                    <i class="fas fa-check-circle me-1"></i> Đã thanh toán đủ
+                                                </span>
+                                            </div>
+                                        {% endif %}
+                                    {% endif %}
                                 </div>
                                 {% else %}
                                 <span class="badge bg-secondary bg-opacity-10 text-secondary status-badge">
-                                                <i class="fas fa-exclamation-circle me-1"></i> Chưa đăng ký
-                                            </span>
+                                    <i class="fas fa-info-circle me-1"></i> Chưa đăng ký
+                                </span>
                                 {% endif %}
                             </td>
 
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-
                                     <button type="button"
-                                            class="btn btn-primary rounded-pill fw-bold shadow-sm"
-                                            style="min-width: 120px;"
+                                            class="btn btn-primary rounded-pill fw-bold shadow-sm btn-sm px-3"
                                             data-bs-toggle="modal"
                                             data-bs-target="#modalPay"
                                             onclick="setupPayment('{{ u.id }}', '{{ u.hoTen }}')">
-                                        <i class="fas fa-sync-alt me-2"></i>Gia hạn
+                                        <i class="fas fa-sync-alt me-1"></i> Gia hạn
                                     </button>
 
+                                    {% if debt and debt.con_no > 0 %}
                                     <button type="button"
-                                            class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm"
-                                            style="min-width: 120px;"
+                                            class="btn btn-warning rounded-pill fw-bold shadow-sm btn-sm px-3 text-dark"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#modalDebt"
+                                            onclick="setupDebt('{{ debt.id }}', '{{ u.hoTen }}', {{ debt.con_no }})">
+                                        <i class="fas fa-money-bill-wave me-1"></i> Trả nợ
+                                    </button>
+                                    {% endif %}
+
+                                    <button type="button"
+                                            class="btn btn-outline-secondary rounded-pill fw-bold shadow-sm btn-sm px-3"
                                             onclick="viewHistory('{{ u.id }}', '{{ u.hoTen }}')">
-                                        <i class="fas fa-history me-2"></i>Lịch sử
+                                        <i class="fas fa-history me-1"></i> Lịch sử
                                     </button>
                                 </div>
                             </td>
@@ -206,7 +229,7 @@
                         <tr>
                             <td colspan="3" class="text-center py-5">
                                 <div class="py-4">
-                                    <i class="bi bi-search display-4 text-light mb-3"></i>
+                                    <i class="fas fa-search display-4 text-light mb-3" style="color: #dee2e6 !important;"></i>
                                     <p class="text-muted fs-5">Không tìm thấy hội viên nào.</p>
                                 </div>
                             </td>
@@ -229,39 +252,92 @@
                 <div class="modal-header border-0 bg-primary text-white p-4">
                     <div>
                         <h5 class="modal-title fw-bold fs-4">Gia hạn Gói tập</h5>
-                        <p class="mb-0 opacity-75 small">Chọn gói tập mới cho hội viên</p>
+                        <p class="mb-0 opacity-75 small">Đăng ký gói mới cho hội viên</p>
                     </div>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body p-4 bg-light bg-opacity-50">
                     <div class="bg-white p-3 rounded-3 shadow-sm mb-4 border-start border-4 border-primary">
-                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Hội viên đang
-                            chọn</small>
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Hội viên đang chọn</small>
                         <div id="payUserName" class="fs-4 fw-bold text-dark mt-1"></div>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label class="form-label fw-bold text-dark">{{ form.goiTap_id.label }}</label>
                         {{ form.goiTap_id(class="form-select form-select-lg border-0 shadow-sm py-3") }}
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label fw-bold text-dark">{{ form.phuong_thuc.label }}</label>
-                        {{ form.phuong_thuc(class="form-select form-select-lg border-0 shadow-sm py-3") }}
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-dark">{{ form.phuong_thuc.label }}</label>
+                            {{ form.phuong_thuc(class="form-select border-0 shadow-sm py-3") }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold text-dark">Số tiền thanh toán</label>
+                            {{ form.soTien(class="form-control border-0 shadow-sm py-3", placeholder="Nhập số tiền...") }}
+                        </div>
+                    </div>
+                    <div class="form-text text-muted mb-2">
+                        <i class="fas fa-info-circle me-1"></i> Để trống ô "Số tiền" nếu khách thanh toán toàn bộ giá trị gói.
                     </div>
                 </div>
 
                 <div class="modal-footer border-0 p-4 bg-white">
-                    <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-bold" data-bs-dismiss="modal">
-                        Đóng
-                    </button>
+                    <button type="button" class="btn btn-light rounded-pill px-4 py-2 fw-bold" data-bs-dismiss="modal">Đóng</button>
                     {{ form.submit(class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm") }}
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="modalDebt" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <form method="POST" action="{{ url_for('process_debt_payment') }}">
+                {{ form_no.hidden_tag() }}
+
+                <div class="modal-header border-0 bg-warning text-dark p-4">
+                    <div>
+                        <h5 class="modal-title fw-bold fs-4"><i class="fas fa-wallet me-2"></i>Thanh Toán Nợ</h5>
+                        <p class="mb-0 small">Thu số tiền còn thiếu của hội viên</p>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <p class="text-muted mb-1">Hội viên</p>
+                        <h4 id="debtUserName" class="fw-bold text-dark">---</h4>
+                        <div class="mt-2">
+                            <span class="badge bg-danger fs-6 p-2">
+                                Còn thiếu: <span id="debtAmountDisplay">0</span> VNĐ
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nhập số tiền khách trả:</label>
+                        {{ form_no.soTienTra(class="form-control form-control-lg border-2 border-warning", id="inputDebtAmount", placeholder="VD: 500000") }}
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="fillFullDebt()">
+                            <i class="fas fa-check-double me-1"></i> Điền toàn bộ số nợ
+                        </button>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-0 p-4 bg-light">
+                    <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Hủy</button>
+                    {{ form_no.submit(class="btn btn-warning fw-bold px-5 shadow-sm") }}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="modalHistory" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow rounded-4">
@@ -273,14 +349,14 @@
                 <div class="p-3 bg-light border-bottom">
                     Khách hàng: <strong id="histUserName" class="text-primary">---</strong>
                 </div>
-                <div class="table-responsive">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
                     <table class="table table-striped history-table mb-0">
                         <thead>
                         <tr>
-                            <th class="ps-4">Ngày thanh toán</th>
-                            <th>Gói tập</th>
-                            <th>Phương thức</th>
-                            <th class="text-end pe-4">Số tiền (VNĐ)</th>
+                            <th class="ps-4 sticky-top">Ngày thanh toán</th>
+                            <th class="sticky-top">Gói tập</th>
+                            <th class="sticky-top">Phương thức</th>
+                            <th class="text-end pe-4 sticky-top">Số tiền (VNĐ)</th>
                         </tr>
                         </thead>
                         <tbody id="historyTableBody">
@@ -300,33 +376,59 @@
         </div>
     </div>
 </div>
+
 <script>
+    // --- 1. Logic cho nút Gia hạn / Đăng ký mới ---
     function setupPayment(userId, userName) {
-        document.getElementById('user_id').value = userId;
-        document.getElementById('payUserName').innerText = userName;
-    }
-</script>
-<script>
-    // Logic cho nút Gia hạn
-    function setupPayment(userId, userName) {
-        document.getElementById('user_id').value = userId;
+        // Điền ID vào hidden field trong form Gia hạn (form.user_id)
+        // Lưu ý: ID của trường này do WTForms sinh ra thường là 'user_id'
+        // hoặc id ta gán thủ công 'user_id_field' ở trên.
+        const idField = document.getElementById('user_id_field') || document.getElementById('user_id');
+        if(idField) {
+            idField.value = userId;
+        }
         document.getElementById('payUserName').innerText = userName;
     }
 
-    // Logic cho nút Lịch sử (AJAX/Fetch)
+    // --- 2. Logic cho nút Trả Nợ ---
+    let currentDebt = 0; // Biến toàn cục lưu số nợ hiện tại
+
+    function setupDebt(dangKyGoiTap_id, userName, debtAmount) {
+        // Điền tên và số nợ hiển thị
+        document.getElementById('debtUserName').innerText = userName;
+        document.getElementById('debtAmountDisplay').innerText = debtAmount.toLocaleString();
+
+        // Điền ID đăng ký vào Hidden Field của form Debt
+        // Tên field trong form_no là 'dangKyId'
+        const hiddenInput = document.querySelector('input[name="dangKyGoiTap_id"]');
+        if(hiddenInput) {
+            hiddenInput.value = dangKyGoiTap_id;
+        }
+
+        // Lưu nợ vào biến để dùng nút "Điền toàn bộ"
+        currentDebt = debtAmount;
+        // Reset ô nhập
+        document.getElementById('inputDebtAmount').value = '';
+    }
+
+    function fillFullDebt() {
+        document.getElementById('inputDebtAmount').value = currentDebt;
+    }
+
+    // --- 3. Logic cho nút Lịch sử (AJAX/Fetch) ---
     function viewHistory(userId, userName) {
-        // 1. Hiển thị Modal và tên user
+        // Hiển thị Modal và tên user
         document.getElementById('histUserName').innerText = userName;
         const myModal = new bootstrap.Modal(document.getElementById('modalHistory'));
         myModal.show();
 
-        // 2. Reset bảng và hiện loading
+        // Reset bảng và hiện loading
         const tbody = document.getElementById('historyTableBody');
         tbody.innerHTML = '';
         document.getElementById('loadingHist').classList.remove('d-none');
         document.getElementById('emptyHist').classList.add('d-none');
 
-        // 3. Gọi API lấy dữ liệu
+        // Gọi API lấy dữ liệu
         fetch(`/api/payment-history/${userId}`)
             .then(response => response.json())
             .then(data => {
@@ -335,12 +437,12 @@
                 if (data.length === 0) {
                     document.getElementById('emptyHist').classList.remove('d-none');
                 } else {
-                    // 4. Render dữ liệu ra bảng
+                    // Render dữ liệu ra bảng
                     data.forEach(item => {
                         const row = `
                             <tr>
                                 <td class="ps-4 fw-bold text-secondary">${item.ngay}</td>
-                                <td><span class="badge bg-info text-dark">${item.goi}</span></td>
+                                <td><span class="badge bg-info text-dark">${item.goi || 'N/A'}</span></td>
                                 <td>${item.phuong_thuc}</td>
                                 <td class="text-end pe-4 fw-bold text-success">${item.tien} đ</td>
                             </tr>

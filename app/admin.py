@@ -140,6 +140,7 @@ class GoiTapView(AuthenticatedModelView):
     can_create = True
     can_edit = True
     can_delete = True
+    column_searchable_list = ['tenGoiTap', 'thoiHan', 'giaTienGoi']
 
 
 class DanhMucBaiTapView(AuthenticatedModelView):

@@ -140,7 +140,7 @@ def get_active_package_by_user_id(user_id):
     return active_package
 
 # Đăng ký gói tập mới
-def add_receipt(user_id, goiTap_id, nhanVien_id = None, payment_method="Tiền mặt"):
+def add_receipt(user_id, goiTap_id, nhanVien_id = None,hlv_id=None, payment_method="Tiền mặt", tien_dong =None):
 
     try:
         is_nhan_vien = NhanVien.query.filter_by(user_id=user_id).first()
@@ -162,21 +162,22 @@ def add_receipt(user_id, goiTap_id, nhanVien_id = None, payment_method="Tiền m
         if not goiTap:
             return False, "Gói tập không tồn tại!!!"
 
-        ngayDangKy = datetime.now().date()
-        ngayKetThuc = ngayDangKy + timedelta(days=goiTap.thoiHan)
+        tong_tien = goiTap.giaTienGoi
+        tien_thanh_toan = float(tien_dong) if tien_dong else tong_tien
 
         dk = DangKyGoiTap(
-            ngayDangKy=ngayDangKy,
-            ngayKetThuc=ngayKetThuc,
+            ngayDangKy=datetime.now().date(),
+            ngayKetThuc= datetime.now().date()+  timedelta(days=goiTap.thoiHan),
             trangThai = True,
             hoiVien_id = user_id,
-            goiTap_id = goiTap_id
+            goiTap_id = goiTap_id,
+            huanLuyenVien_id = hlv_id
         )
         db.session.add(dk)
         db.session.flush()
 
         hoa_don = ThanhToan(
-            soTienTT = goiTap.giaTienGoi,
+            soTienTT = tien_thanh_toan,
             ngayThanhToan = datetime.now(),
             phuongThuc=payment_method,
             hoiVien_id = user_id,
@@ -210,6 +211,42 @@ def get_all_member(kw=None):
 def get_payment_history_by_id(user_id):
     return ThanhToan.query.filter_by(hoiVien_id=user_id).order_by(ThanhToan.ngayThanhToan.desc()).all()
 
+def get_debt_info(dangKyGoiTap_id):
+    dk = DangKyGoiTap.query.get(dangKyGoiTap_id)
+    if not dk:
+        return None
+    gia_goi_tap = dk.goi_tap.giaTienGoi
+    da_tra = db.session.query(func.sum(ThanhToan.soTienTT))\
+                       .filter(ThanhToan.dangKyGoiTap_id == dangKyGoiTap_id).scalar() or 0
+    con_no = gia_goi_tap - da_tra
+    return {
+        "id": dk.id,
+        "ten_goi": dk.goi_tap.tenGoiTap,
+        "gia_goi_tap": gia_goi_tap,
+        "da_tra": da_tra,
+        "con_no": con_no,
+        "trang_thai": "Hoàn tất" if con_no <= 0 else "Còn nợ"
+    }
+def add_debt_payment(dangKyGoiTap_id, so_tien, nhanVien_id):
+    try:
+        dk = DangKyGoiTap.query.get(dangKyGoiTap_id)
+        if not dk: return False
+
+        hd = ThanhToan(
+            soTienTT=so_tien,
+            ngayThanhToan=datetime.now(),
+            phuongThuc="Tiền mặt (Trả nợ)",
+            hoiVien_id=dk.hoiVien_id,
+            dangKyGoiTap_id=dk.id,
+            nhanVien_id=nhanVien_id
+        )
+        db.session.add(hd)
+        db.session.commit()
+        return True
+    except Exception as ex:
+        db.session.rollback()
+        print(str(ex))
+        return False
 def stats_revenue(year = datetime.now().year):
     """Thống kê doanh thu theo tháng - theo gói tập"""
     revenue = ((db.session.query(func.extract('month', ThanhToan.ngayThanhToan).label('thang'),GoiTap.tenGoiTap,
