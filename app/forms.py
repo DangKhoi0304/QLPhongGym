@@ -71,6 +71,12 @@ class GiaHanForm(FlaskForm):
 class ThanhToanNoForm(FlaskForm):
     dangKyGoiTap_id = HiddenField('Mã Đăng Ký', validators=[DataRequired()])
     soTienTra = IntegerField('Số tiền trả thêm', validators=[DataRequired(), NumberRange(min=1000)])
+    phuong_thuc = SelectField(
+        'Phương thức thanh toán',
+        choices=[('Tiền mặt', 'Tiền mặt'), ('Chuyển khoản', 'Chuyển khoản')],
+        default='Tiền mặt',
+        validators=[DataRequired()]
+    )
     submit = SubmitField('Thu Tiền')
 
 class StaffRegisterForm(RegisterForm):

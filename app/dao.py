@@ -124,7 +124,7 @@ def get_active_package_by_user_id(user_id):
 
     return active_package
 
-def add_receipt(user_id, goiTap_id, nhanVien_id = None,hlv_id=None, payment_method="Tiền mặt", tien_dong =None):
+def add_receipt(user_id, goiTap_id, nhanVien_id = None,hlv_id=None, payment_method="Chuyển khoản", tien_dong =None):
 
     try:
         is_nhan_vien = NhanVien.query.filter_by(user_id=user_id).first()
@@ -208,7 +208,7 @@ def get_debt_info(dangKyGoiTap_id):
         "con_no": con_no,
         "trang_thai": "Hoàn tất" if con_no <= 0 else "Còn nợ"
     }
-def add_debt_payment(dangKyGoiTap_id, so_tien, nhanVien_id):
+def add_debt_payment(dangKyGoiTap_id, so_tien, nhanVien_id,payment_method="Chuyển khoản"):
     try:
         dk = DangKyGoiTap.query.get(dangKyGoiTap_id)
         if not dk: return False
@@ -216,7 +216,7 @@ def add_debt_payment(dangKyGoiTap_id, so_tien, nhanVien_id):
         hd = ThanhToan(
             soTienTT=so_tien,
             ngayThanhToan=datetime.now(),
-            phuongThuc="Tiền mặt (Trả nợ)",
+            phuongThuc=f"{payment_method} (Trả nợ)",
             hoiVien_id=dk.hoiVien_id,
             dangKyGoiTap_id=dk.id,
             nhanVien_id=nhanVien_id

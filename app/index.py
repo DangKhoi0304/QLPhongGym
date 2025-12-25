@@ -187,7 +187,7 @@ def upload_avatar():
             upload_result = cloudinary.uploader.upload(
                 file,
                 public_id=f"avatar_{current_user.id}",
-                folder="avatars",  # Tạo thư mục avatars trên Cloudinary
+                folder="avatars",
                 overwrite=True,
                 resource_type="image"
             )
@@ -293,8 +293,9 @@ def process_debt_payment():
     if form.validate_on_submit():
         dk_id = form.dangKyGoiTap_id.data
         amount = form.soTienTra.data
+        phuong_thuc = form.phuong_thuc.data
 
-        if dao.add_debt_payment(dk_id, amount, current_user.NhanVienProfile.id):
+        if dao.add_debt_payment(dk_id, amount, current_user.NhanVienProfile.id, payment_method=phuong_thuc):
             flash("Thu tiền nợ thành công!", "success")
         else:
             flash("Lỗi hệ thống!", "danger")

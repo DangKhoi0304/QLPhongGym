@@ -104,7 +104,7 @@
                                             {{ p.ngayThanhToan.strftime('%d/%m/%Y') }}
                                         </td>
                                         <td>
-                                            {% if p.phuongThuc == 'Chuyển khoản' %}
+                                            {% if p.phuongThuc and 'Chuyển khoản' in p.phuongThuc %}
                                                 <span class="badge badge-soft-info">
                                                     <i class="fas fa-university me-1"></i> Chuyển khoản
                                                 </span>
@@ -114,6 +114,7 @@
                                                 </span>
                                             {% endif %}
                                         </td>
+
                                         <td class="text-price">
                                             {{ "{:,.0f}".format(p.soTienTT) }} VNĐ
                                         </td>

@@ -313,7 +313,10 @@
                             </span>
                         </div>
                     </div>
-
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Phương thức thanh toán:</label>
+                        {{ form_no.phuong_thuc(class="form-select form-select-lg border-2 border-warning") }}
+                    </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nhập số tiền khách trả:</label>
                         {{ form_no.soTienTra(class="form-control form-control-lg border-2 border-warning", id="inputDebtAmount", placeholder="VD: 500000") }}

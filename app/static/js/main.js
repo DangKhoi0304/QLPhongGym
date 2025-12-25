@@ -158,6 +158,8 @@ function setupPayment(userId, userName) {
 
         currentDebt = debtAmount;
         document.getElementById('inputDebtAmount').value = '';
+        const selectMethod = document.getElementById('phuong_thuc');
+        if (selectMethod) selectMethod.value = 'Tiền mặt';
     }
 
     function fillFullDebt() {
