@@ -1,8 +1,6 @@
-function renderCharts(monthLabels, revenueDatasets, memberValues) { //monthLabels: Tháng 1->12
-    // 1. CẤU HÌNH BIỂU ĐỒ DOANH THU (CỘT CHỒNG)
+function renderCharts(monthLabels, revenueDatasets, memberValues) {
     const ctxRevenue = document.getElementById('revenueChart');
-    
-    // Kiểm tra nếu element tồn tại mới vẽ
+
     if (ctxRevenue) {
         new Chart(ctxRevenue.getContext('2d'), {
             type: 'bar',
@@ -49,7 +47,6 @@ function renderCharts(monthLabels, revenueDatasets, memberValues) { //monthLabel
         });
     }
 
-    // 2. CẤU HÌNH BIỂU ĐỒ HỘI VIÊN (CỘT ĐƠN)
     const ctxMember = document.getElementById('memberChart');
     
     if (ctxMember) {

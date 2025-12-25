@@ -32,7 +32,6 @@ def index():
 
 @app.context_processor
 def inject_enums():
-    # trả UserRole vào mọi template Jinja => bạn có thể dùng UserRole.NGUOIQUANTRI trong template
     return dict(UserRole=UserRole)
 
 @app.route('/logout', methods=['GET', 'POST'])
@@ -47,25 +46,18 @@ def login_process():
         taiKhoan = request.form.get('taiKhoan')
         matKhau = request.form.get('matKhau')
 
-        # Xác thực user (hàm này check trong bảng User)
         user = dao.auth_nhan_vien(taikhoan=taiKhoan, matkhau=matKhau)
 
         if not user:
             thong_bao = "Sai tài khoản hoặc mật khẩu."
             return render_template('login.html', err_msg=thong_bao)
 
-        # Đăng nhập thành công
         login_user(user)
 
-        # Nếu có next page (trang người dùng muốn vào trước đó) thì ưu tiên chuyển hướng
         next_page = request.args.get('next') or request.form.get('next')
         if next_page:
             return redirect(next_page)
 
-        # --- PHÂN QUYỀN CHUYỂN HƯỚNG (ROUTING) ---
-
-        # 1. Kiểm tra: Có phải Nhân Viên (Admin, Thu ngân, Lễ tân) không?
-        # (Dựa vào backref 'NhanVienProfile' trong models.py)
         if user.NhanVienProfile:
             vai_tro = user.NhanVienProfile.vaiTro
             if vai_tro == UserRole.NGUOIQUANTRI:
@@ -75,7 +67,6 @@ def login_process():
 
         return redirect(url_for('hoi_vien', taikhoan=taiKhoan))
 
-    # Nếu là GET request thì trả về trang login
     return render_template('login.html', err_msg=thong_bao)
 
 @login.user_loader
@@ -111,11 +102,9 @@ def ho_so():
     form = ChangeInfoForm()
     form_pw = ChangePasswordForm()
 
-    # --- XỬ LÝ POST (Cập nhật thông tin / Đổi mật khẩu) ---
     if request.method == 'POST':
         action = request.form.get('action')
 
-        # 1. Cập nhật thông tin cá nhân
         if action == 'update_profile':
             if form.validate_on_submit():
                 hoTen = form.hoTen.data
@@ -135,7 +124,6 @@ def ho_so():
                 flash("Form cập nhật thông tin không hợp lệ.", "danger")
                 return redirect(url_for('ho_so'))
 
-        # 2. Đổi mật khẩu
         elif action == 'change_password':
             if form_pw.validate_on_submit():
                 current_pw = form_pw.current_password.data
@@ -163,9 +151,7 @@ def ho_so():
             flash("Yêu cầu không hợp lệ.", "danger")
             return redirect(url_for('ho_so'))
 
-    # --- XỬ LÝ GET (Hiển thị form) ---
 
-    # Fill dữ liệu cũ vào form
     form.hoTen.data = current_user.hoTen
     form.gioiTinh.data = '1' if current_user.gioiTinh else '0'
     form.SDT.data = current_user.SDT
@@ -174,11 +160,8 @@ def ho_so():
 
     user_info = dao.get_user_by_id(current_user.id)
 
-    # [QUAN TRỌNG] Logic chọn Layout Header
-    # Mặc định là layout của Hội viên
     layout_template = 'layout/base.html'
 
-    # Nếu là Nhân viên hoặc HLV -> Dùng layout Nhân viên
     if current_user.NhanVienProfile or getattr(current_user, 'huanluyenvien', None):
         layout_template = 'layoutNhanVien/base.html'
 
@@ -209,14 +192,11 @@ def upload_avatar():
                 resource_type="image"
             )
 
-            # Lấy URL ảnh an toàn (https)
             image_url = upload_result['secure_url']
 
-            # Lưu URL vào Database
             current_user.avatar = image_url
             db.session.commit()
 
-            # Trả về URL để hiển thị ngay
             return jsonify({'success': True, 'image_url': image_url})
 
         except Exception as e:
@@ -245,7 +225,6 @@ def buy_package():
 @app.route('/thu-ngan/quan-ly-thanh-toan', methods=['GET', 'POST'])
 @login_required
 def payment_management():
-    # Quyền truy cập
     if not current_user.NhanVienProfile or current_user.NhanVienProfile.vaiTro not in [UserRole.THUNGAN, UserRole.NGUOIQUANTRI]:
         flash("Bạn không có quyền truy cập", "danger")
         return redirect('/')
@@ -279,12 +258,10 @@ def payment_management():
 
         return redirect(request.url)  # Reload trang để clear form
 
-        # Nếu form submit bị lỗi (ví dụ thiếu field), in lỗi ra log để debug
     if form.errors:
         print("Form Errors:", form.errors)
         flash("Dữ liệu gửi lên không hợp lệ.", "danger")
 
-        # 5. Xử lý hiển thị danh sách (GET) - Giữ nguyên logic tìm kiếm cũ
     keyword = request.args.get('keyword', '')
     members_raw = dao.get_all_member(keyword)
 
@@ -302,11 +279,10 @@ def payment_management():
                 'debt_info': debt_info
             })
 
-    # Truyền biến form sang template
     return render_template('ThuNgan/quan_ly_thanh_toan.html',
                            members=members_data,
                            form=form,
-                           form_no = form_no,# <-- Truyền form vào đây
+                           form_no = form_no,
                            keyword=keyword)
 
 
@@ -330,7 +306,6 @@ def process_debt_payment():
 @app.route('/api/payment-history/<int:user_id>')
 @login_required
 def get_payment_history_api(user_id):
-    # Kiểm tra quyền thu ngân/admin
     if not current_user.NhanVienProfile:
         flash("Bạn không có quyền truy cập", "danger")
         return redirect('/')
@@ -382,7 +357,6 @@ def thong_ke_doanh_thu():
             'stack': 'Stack 0',
         })
 
-    # 3. Xử lý dữ liệu Hội viên (Giữ nguyên logic cũ)
     member_values = [0] * 12
     for mon, val in data_members:
         member_values[int(mon) - 1] = val
@@ -391,8 +365,8 @@ def thong_ke_doanh_thu():
 
     return render_template('ThuNgan/thong_ke_bao_cao.html',
                            month_labels=month_labels,
-                           revenue_datasets=final_revenue_datasets,  # <-- Truyền biến mới này
-                           total_revenue=total_revenue,  # <-- Truyền tổng doanh thu
+                           revenue_datasets=final_revenue_datasets,
+                           total_revenue=total_revenue,
                            member_values=member_values,
                            total_active=total_active,
                            selected_year=year)
@@ -401,7 +375,6 @@ def thong_ke_doanh_thu():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        # Lấy dữ liệu từ form
         hoTen = form.hoTen.data
         gioiTinh = form.gioiTinh.data
         ngaySinh = form.ngaySinh.data
@@ -411,7 +384,6 @@ def register():
         taiKhoan = form.taiKhoan.data
         matKhau = form.matKhau.data
 
-        # Kiểm tra trùng
         if dao.get_user_by_username(taiKhoan):
             flash("Tài khoản đã tồn tại. Vui lòng chọn tên khác.", "danger")
             return render_template('register.html', form=form)
@@ -422,16 +394,13 @@ def register():
             flash("Số điện thoại đã được sử dụng.", "danger")
             return render_template('register.html', form=form)
 
-        # Xử lý avatar upload (từ input name="avatar")
         avatar_url = DEFAULT_AVATAR
         avatar_file = request.files.get('avatar')
         if avatar_file and avatar_file.filename:
-            # kiểm tra extension
             filename = secure_filename(avatar_file.filename)
             ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
             if ext in ALLOWED_EXT:
                 try:
-                    # Nếu bạn đã cấu hình cloudinary.config(...) ở chỗ khởi tạo app
                     upload_result = cloudinary.uploader.upload(
                         avatar_file,
                         public_id=f"avatar_{uuid4().hex}",
@@ -443,17 +412,14 @@ def register():
                     avatar_url = upload_result.get('secure_url') or avatar_url
                 except Exception as ex:
                     app.logger.exception("Lỗi upload avatar lên Cloudinary: %s", ex)
-                    # fallback: để avatar_url = DEFAULT_AVATAR
             else:
                 flash("File ảnh không hợp lệ (chỉ jpg/png/gif).", "warning")
 
-        # Tạo user — truyền avatar vào DAO
         user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, avatar=avatar_url)
         if not user:
             flash("Tạo tài khoản thất bại. Vui lòng thử lại.", "danger")
             return render_template('register.html', form=form)
 
-        # Gửi email xác nhận (dùng send_mail_gmail từ app/utils_mail.py)
         if email and email.strip():
             try:
                 send_mail_gmail(
@@ -483,6 +449,9 @@ def staff_register():
 
     ds_hlv = dao.load_all_huanluyenvien()
     form.huanLuyenVien.choices = [(0, 'Tự Tập')] + [(hlv.id, f"{hlv.user.hoTen}") for hlv in ds_hlv]
+    amount = getattr(form, 'soTien', None)
+    if amount:
+        amount = amount.data
 
     if form.validate_on_submit():
         hoTen = form.hoTen.data
@@ -495,11 +464,11 @@ def staff_register():
         goiTap_id = form.goiTap.data
         phuongThuc = form.phuongThuc.data
         hlv_id = form.huanLuyenVien.data
+        amount = form.soTien.data
 
         matKhau = DEFAULT_PASSWORD
 
 
-        # Kiểm tra trùng
         if dao.get_user_by_username(taiKhoan):
             flash("Tài khoản đã tồn tại. Vui lòng chọn tên khác.", "danger")
             return render_template('LeTan/dang_ky_hoi_vien.html', form=form)
@@ -513,7 +482,6 @@ def staff_register():
         avatar_url = DEFAULT_AVATAR
         avatar_file = request.files.get('avatar')
         if avatar_file and avatar_file.filename:
-            # kiểm tra extension
             filename = secure_filename(avatar_file.filename)
             ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
             if ext in ALLOWED_EXT:
@@ -532,7 +500,6 @@ def staff_register():
             else:
                 flash("File ảnh không hợp lệ (chỉ jpg/png/gif).", "warning")
 
-        # Tạo user — DAO create_user phải chấp nhận goiTap (mã bạn đã cập nhật)
         user = dao.create_user(hoTen, gioiTinh, ngaySinh, diaChi, sdt, email, taiKhoan, matKhau, avatar=avatar_url)
         if user:
             try:
@@ -544,7 +511,9 @@ def staff_register():
                     goiTap_id=goiTap_id,
                     nhanVien_id=nhanVien_id,
                     payment_method=phuongThuc,
-                    hlv_id=hlv_id
+                    hlv_id=hlv_id,
+                    tien_dong = amount
+
                 )
                 if success:
                     flash(f"Đăng ký thành công cho hội viên {hoTen}!", "success")
@@ -578,8 +547,6 @@ def staff_register():
                     flash(f"Tạo tài khoản thành công nhưng lỗi đăng ký gói: {msg}", "warning")
             except Exception as e:
                 flash(f"Lỗi hệ thống khi thanh toán: {str(e)}", "danger")
-        # else:
-        #     flash("Tạo tài khoản thất bại.", "danger")
 
         return redirect(url_for('staff_register'))
 
@@ -588,7 +555,6 @@ def staff_register():
 @app.route('/chon-hlv', methods=['GET', 'POST'])
 @login_required
 def choose_pt():
-    # ... (giữ nguyên logic kiểm tra gói tập active) ...
     active_package = dao.get_active_package_by_user_id(current_user.id)
     if not active_package:
         return redirect('/')
@@ -615,7 +581,6 @@ def create_schedule(dangky_id):
 
     form = TaoLichTapForm()
 
-    # 2. Load dữ liệu gợi ý cho form (Autocomplete)
     ds_bai_tap = DanhMucBaiTap.query.all()
     goi_y_list = [b.ten_bai_tap for b in ds_bai_tap]
     data_map = {b.ten_bai_tap: b.nhom_co for b in ds_bai_tap}
@@ -625,32 +590,27 @@ def create_schedule(dangky_id):
         formatted_list = []
 
         if raw_dates_str:
-            # --- BƯỚC 1: LẤY DANH SÁCH NGÀY MỚI ---
             new_dates_list = [d.strip().replace('-', '/') for d in raw_dates_str.split(',') if d.strip()]
 
-            # --- BƯỚC 2: LẤY DANH SÁCH NGÀY CŨ TỪ DB ---
             lich_cu = dao.get_schedule_by_dangky(dangky_id)
             old_dates_list = []
             for lich in lich_cu:
                 found_dates = re.findall(r'\d{2}/\d{2}/\d{4}', lich.ngayTap)
                 old_dates_list.extend(found_dates)
 
-            # --- BƯỚC 3: KIỂM TRA QUY ĐỊNH THEO TỪNG TUẦN (LOGIC CHUẨN) ---
             quydinh = QuyDinh.query.filter_by(ten_quy_dinh="Số ngày tập tối đa").first()
 
             if quydinh:
                 max_days = int(quydinh.gia_tri)
 
-                # Maps gom nhóm theo tuần: Key=(Năm, Tuần)
-                map_old = {}  # Ngày cũ trong DB
-                map_total = {}  # Tổng (Cũ + Mới)
+                map_old = {}
+                map_total = {}
 
-                # Hàm helper gom nhóm
                 def group_dates_by_week(date_list, target_map):
                     for d_str in date_list:
                         try:
                             dt = datetime.strptime(d_str, '%d/%m/%Y')
-                            key_week = dt.isocalendar()[:2]  # Lấy (Năm, Số tuần)
+                            key_week = dt.isocalendar()[:2]
                             if key_week not in target_map: target_map[key_week] = set()
                             target_map[key_week].add(d_str)
                         except ValueError:
@@ -659,21 +619,18 @@ def create_schedule(dangky_id):
                 group_dates_by_week(old_dates_list, map_old)
                 group_dates_by_week(old_dates_list + new_dates_list, map_total)
 
-                # Duyệt qua từng tuần để kiểm tra
                 for week_key, dates_in_week in map_total.items():
                     current_total = len(dates_in_week)
                     old_count = len(map_old.get(week_key, set()))
 
-                    # Nếu tuần này vốn dĩ đã vượt quy định (do lịch sử để lại)
                     if old_count > max_days:
-                        if current_total > old_count:  # Chỉ chặn nếu cố tình thêm ngày mới
+                        if current_total > old_count:
                             year, week_num = week_key
                             flash(
                                 f"Tuần {week_num}/{year}: Lịch cũ ({old_count} ngày) đã vượt quá quy định. Bạn KHÔNG THỂ thêm ngày mới, chỉ được sửa bài tập.",
                                 "danger")
                             return redirect(url_for('create_schedule', dangky_id=dangky_id))
 
-                    # Nếu tuần này bình thường -> Kiểm tra giới hạn
                     else:
                         if current_total > max_days:
                             year, week_num = week_key
@@ -681,9 +638,7 @@ def create_schedule(dangky_id):
                                 f"Tuần {week_num}/{year}: Bạn chọn {current_total} ngày. Quy định tối đa {max_days} ngày/tuần.",
                                 "danger")
                             return redirect(url_for('create_schedule', dangky_id=dangky_id))
-            # ----------------------------------------------------------------
 
-            # --- BƯỚC 4: FORMAT NGÀY THÁNG ĐỂ LƯU ---
             temp_dates = []
             for d_str in new_dates_list:
                 try:
@@ -692,7 +647,7 @@ def create_schedule(dangky_id):
                 except ValueError:
                     continue
 
-            temp_dates.sort()  # Sắp xếp tăng dần
+            temp_dates.sort()
 
             days_map = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật']
             for date_obj in temp_dates:
@@ -702,17 +657,12 @@ def create_schedule(dangky_id):
 
         final_ngay_tap = ", ".join(formatted_list)
 
-        # --- [MỚI] BƯỚC 5: TÌM ID DANH MỤC (LOGIC LAI) ---
         ten_bai = form.baiTap.data
 
-        # Tìm trong bảng danh mục xem có tên này chưa
         dm_obj = DanhMucBaiTap.query.filter_by(ten_bai_tap=ten_bai).first()
 
-        # Nếu có thì lấy ID, nếu không (bài tập lạ) thì là None
         dm_id = dm_obj.id if dm_obj else None
-        # -------------------------------------------------
 
-        # Gọi DAO lưu xuống DB (Truyền thêm danh_muc_id)
         if dao.add_schedule(dangky_id, form.baiTap.data, form.nhomCo.data, form.soHiep.data, form.soLan.data,
                             final_ngay_tap, danh_muc_id=dm_id):
             flash("Thêm bài tập thành công!", "success")
@@ -720,7 +670,6 @@ def create_schedule(dangky_id):
         else:
             flash("Lỗi khi thêm lịch.", "danger")
 
-    # Xử lý GET (Hiển thị trang)
     current_schedule = dao.get_schedule_by_dangky(dangky_id)
     dk = DangKyGoiTap.query.get(dangky_id)
 
@@ -735,19 +684,14 @@ def create_schedule(dangky_id):
 @app.route('/hoi-vien/lich-tap')
 @login_required
 def member_view_schedule():
-    # 1. Lấy gói tập đang kích hoạt của user hiện tại
     active_package = dao.get_active_package_by_user_id(current_user.id)
 
     if not active_package:
         flash("Bạn chưa đăng ký gói tập nào!", "warning")
-        # Nếu chưa có gói tập, quay về trang dashboard
         return redirect(url_for('hoi_vien', taikhoan=current_user.taiKhoan))
 
-    # 2. Lấy danh sách lịch tập dựa trên gói đăng ký ID
-    # (Hàm dao.get_schedule_by_dangky bạn đã thêm vào dao.py ở bước trước)
     schedule = dao.get_schedule_by_dangky(active_package.id)
 
-    # 3. Trả về giao diện xem lịch
     return render_template('HoiVien/xem_lich_tap.html',
                            schedule=schedule,
                            hlv=active_package.huan_luyen_vien)
@@ -759,18 +703,13 @@ def danh_sach_hoi_vien():
     if not (current_user.NhanVienProfile and current_user.NhanVienProfile.vaiTro == UserRole.HUANLUYENVIEN):
         return redirect('/')
 
-    # 2. Lấy danh sách hội viên (đặt tên biến tiếng Việt cho dễ hiểu)
     ds_hoi_vien = dao.get_members_by_hlv(current_user.NhanVienProfile.id)
 
-    # 3. Render giao diện (đổi tên file html luôn)
     return render_template('HuanLuyenVien/danh_sach_hoi_vien.html', ds_hoi_vien=ds_hoi_vien)
 
-
-# --- ROUTE XÓA LỊCH TẬP ---
 @app.route('/hlv-panel/xoa-lich/<int:id>')
 @login_required
 def delete_schedule_item(id):
-    # Lấy thông tin lịch để biết nó thuộc về gói đăng ký nào (để redirect về đúng chỗ)
     lich = dao.get_schedule_item_by_id(id)
     if not lich:
         flash("Lịch tập không tồn tại.", "danger")
@@ -783,11 +722,9 @@ def delete_schedule_item(id):
     else:
         flash("Lỗi khi xóa.", "danger")
 
-    # Quay lại trang tạo lịch của hội viên đó
     return redirect(url_for('create_schedule', dangky_id=dangky_id))
 
 
-# --- ROUTE SỬA LỊCH TẬP ---
 @app.route('/hlv-panel/sua-lich/<int:id>', methods=['GET', 'POST'])
 @login_required
 def edit_schedule_item(id):
@@ -796,15 +733,11 @@ def edit_schedule_item(id):
 
     form = SuaLichTapForm()
 
-    # --- CHUẨN BỊ DỮ LIỆU GỢI Ý (Giống trang tạo lịch) ---
     ds_bai_tap = DanhMucBaiTap.query.all()
     goi_y_list = [b.ten_bai_tap for b in ds_bai_tap]
     data_map = {b.ten_bai_tap: b.nhom_co for b in ds_bai_tap}
-    # -----------------------------------------------------
 
-    # XỬ LÝ POST (LƯU)
     if form.validate_on_submit():
-        # Xử lý ngày tháng (Code cũ giữ nguyên)
         raw_dates_str = form.ngayTap.data
         formatted_list = []
         if raw_dates_str:
@@ -818,10 +751,9 @@ def edit_schedule_item(id):
                     continue
         final_ngay_tap = ", ".join(formatted_list)
 
-        # Gọi hàm update (thêm tham số nhomCo)
         if dao.update_schedule(id,
                                form.baiTap.data,
-                               form.nhomCo.data,  # <--- Cập nhật nhóm cơ
+                               form.nhomCo.data,
                                form.soHiep.data,
                                form.soLan.data,
                                final_ngay_tap):
@@ -830,23 +762,16 @@ def edit_schedule_item(id):
         else:
             flash("Lỗi cập nhật.", "danger")
 
-    # XỬ LÝ GET (HIỂN THỊ DỮ LIỆU CŨ)
     if request.method == 'GET':
         form.baiTap.data = lich.baiTap
         form.nhomCo.data = lich.nhom_co
         form.soHiep.data = lich.soHiep
         form.soLan.data = lich.soLan
 
-        # [QUAN TRỌNG] Xử lý ngày tháng để hiện lại lên lịch
-        # Dữ liệu trong DB dạng: "Thứ 2 (22/12/2025), Thứ 4 (24/12/2025)"
         if lich.ngayTap:
-            # 1. Dùng Regex để chỉ lấy phần ngày tháng (22/12/2025)
             dates = re.findall(r'\d{2}/\d{2}/\d{4}', lich.ngayTap)
 
-            # 2. Đổi dấu / thành dấu - (22-12-2025) để Flatpickr hiểu
-            # 3. Nối lại bằng dấu phẩy (,)
             form.ngayTap.data = ",".join([d.replace('/', '-') for d in dates])
-            # Kết quả: "22-12-2025,24-12-2025"
         else:
             form.ngayTap.data = ""
 

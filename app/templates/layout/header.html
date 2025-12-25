@@ -14,15 +14,12 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto align-items-center">
 
-                {# ================== 1. KHU VỰC CHUNG (AI CŨNG THẤY) ================== #}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('index') }}">Trang Chủ</a>
                 </li>
 
-                {# ================== 2. LOGIC KIỂM TRA ĐĂNG NHẬP ================== #}
                 {% if current_user.is_authenticated %}
 
-                    {# --- A. MENU DÀNH CHO HỘI VIÊN (Không phải Nhân viên/HLV) --- #}
                     {% if not current_user.NhanVienProfile and not current_user.huanluyenvien %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('hoi_vien', taikhoan=current_user.taiKhoan) }}">
@@ -34,7 +31,6 @@
                         </li>
                     {% endif %}
 
-                    {# --- B. MENU DÀNH CHO NHÂN VIÊN & ADMIN --- #}
                     {% if current_user.NhanVienProfile %}
                         <li class="nav-item">
                             {% if current_user.NhanVienProfile.vaiTro.name == 'NGUOIQUANTRI' %}
@@ -48,7 +44,6 @@
                             {% endif %}
                         </li>
 
-                        {# Menu riêng cho Lễ Tân #}
                         {% if current_user.NhanVienProfile.vaiTro.name == 'LETAN' %}
                              <li class="nav-item">
                                 <a class="nav-link" href="{{ url_for('staff_register') }}">Đăng Ký HV</a>
@@ -56,7 +51,6 @@
                         {% endif %}
                     {% endif %}
 
-                    {# --- C. MENU DÀNH CHO HUẤN LUYỆN VIÊN --- #}
                     {% if current_user.huanluyenvien %}
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('danh_sach_hoi_vien') }}">
@@ -65,7 +59,6 @@
                         </li>
                     {% endif %}
 
-                    {# ================== 3. KHU VỰC CÁ NHÂN (USER NÀO CŨNG CÓ) ================== #}
                     <li class="nav-item ms-2">
                         <a class="nav-link fw-bold text-primary" href="{{ url_for('ho_so') }}">
                             {% set avatar_val = (current_user.avatar if current_user is defined else None) or (user_info.avatar if user_info is defined else None) %}
@@ -89,7 +82,6 @@
                         </a>
                     </li>
 
-                {# ================== 4. CHƯA ĐĂNG NHẬP ================== #}
                 {% else %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('login_process') }}">Đăng Nhập</a>

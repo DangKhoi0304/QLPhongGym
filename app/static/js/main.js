@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Lấy phần tử input file
     const avatarUploadInput = document.getElementById('avatar-upload');
 
     if (avatarUploadInput) {
@@ -7,17 +6,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const file = event.target.files[0];
             if (!file) return;
 
-            // Lấy container chứa ảnh để xử lý hiệu ứng loading
             const avatarContainer = document.getElementById('avatar-container');
 
-            // Hiệu ứng làm mờ để báo đang xử lý
             if (avatarContainer) avatarContainer.style.opacity = '0.5';
 
-            // Chuẩn bị dữ liệu gửi đi
             const formData = new FormData();
             formData.append('file', file);
 
-            // Gọi API upload
             fetch('/api/upload-avatar', {
                 method: 'POST',
                 body: formData
@@ -27,16 +22,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (avatarContainer) avatarContainer.style.opacity = '1';
 
                 if (data.success) {
-                    // 1. Xóa nội dung cũ (ảnh cũ hoặc chữ cái fallback)
                     avatarContainer.innerHTML = '';
 
-                    // 2. Tạo thẻ img mới với link từ Cloudinary trả về
                     const newImg = document.createElement('img');
                     newImg.src = data.image_url;
                     newImg.className = 'w-100 rounded-circle object-fit-cover animate__animated animate__fadeIn'; // Thêm class animation nếu muốn
                     newImg.alt = 'Avatar';
 
-                    // 3. Chèn ảnh mới vào khung
                     avatarContainer.appendChild(newImg);
 
                     console.log("Upload thành công:", data.image_url);
@@ -105,3 +97,69 @@ function submitPayment() {
             alert("Hệ thống lỗi! Xem console để biết chi tiết.");
         });
 }
+
+function viewHistory(userId, userName) {
+        document.getElementById('histUserName').innerText = userName;
+        const myModal = new bootstrap.Modal(document.getElementById('modalHistory'));
+        myModal.show();
+
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = '';
+        document.getElementById('loadingHist').classList.remove('d-none');
+        document.getElementById('emptyHist').classList.add('d-none');
+
+        fetch(`/api/payment-history/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loadingHist').classList.add('d-none');
+
+                if (data.length === 0) {
+                    document.getElementById('emptyHist').classList.remove('d-none');
+                } else {
+
+                    data.forEach(item => {
+                        const row = `
+                            <tr>
+                                <td class="ps-4 fw-bold text-secondary">${item.ngay}</td>
+                                <td><span class="badge bg-info text-dark">${item.goi || 'N/A'}</span></td>
+                                <td>${item.phuong_thuc}</td>
+                                <td class="text-end pe-4 fw-bold text-success">${item.tien} đ</td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Lỗi tải dữ liệu!</td></tr>';
+                document.getElementById('loadingHist').classList.add('d-none');
+            });
+    }
+
+function setupPayment(userId, userName) {
+        const idField = document.getElementById('user_id_field') || document.getElementById('user_id');
+        if(idField) {
+            idField.value = userId;
+        }
+        document.getElementById('payUserName').innerText = userName;
+    }
+    let currentDebt = 0;
+
+    function setupDebt(dangKyGoiTap_id, userName, debtAmount) {
+
+        document.getElementById('debtUserName').innerText = userName;
+        document.getElementById('debtAmountDisplay').innerText = debtAmount.toLocaleString();
+
+        const hiddenInput = document.querySelector('input[name="dangKyGoiTap_id"]');
+        if(hiddenInput) {
+            hiddenInput.value = dangKyGoiTap_id;
+        }
+
+        currentDebt = debtAmount;
+        document.getElementById('inputDebtAmount').value = '';
+    }
+
+    function fillFullDebt() {
+        document.getElementById('inputDebtAmount').value = currentDebt;
+    }

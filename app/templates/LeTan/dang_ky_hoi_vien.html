@@ -9,25 +9,25 @@
     .register-bg {
         background-color: #f3f4f6;
         min-height: 100vh;
-        padding: 20px 0; /* Giảm padding trên dưới */
+        padding: 20px 0;
     }
 
     .card-register {
         border: none;
-        border-radius: 16px; /* Bo góc nhỏ hơn xíu cho gọn */
+        border-radius: 16px;
         box-shadow: 0 5px 25px rgba(0,0,0,0.05);
         overflow: hidden;
     }
 
     .card-header-custom {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 20px; /* Giảm padding header */
+        padding: 20px;
         color: white;
         text-align: center;
     }
 
     .section-title {
-        font-size: 0.85rem; /* Chữ nhỏ hơn xíu */
+        font-size: 0.85rem;
         font-weight: 700;
         text-transform: uppercase;
         color: #6c757d;
@@ -40,7 +40,7 @@
 
     .form-control, .form-select {
         border-radius: 8px;
-        padding: 10px 12px; /* Input gọn hơn */
+        padding: 10px 12px;
         font-size: 0.95rem;
         border: 1px solid #e2e8f0;
         background-color: #f8fafc;
@@ -69,7 +69,6 @@
         font-size: 0.95rem;
     }
 
-    /* Label nhỏ lại chút */
     .form-label {
         margin-bottom: 0.3rem;
         font-size: 0.85rem !important;
@@ -143,8 +142,8 @@
                     </div>
 
                     <h6 class="section-title mt-4">3. Dịch vụ & Thanh Toán</h6>
-                    <div class="p-3 rounded-3 bg-light border border-dashed">
-                        <div class="row g-3">
+                    <div class="p-4 rounded-3 bg-light border border-dashed">
+                        <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold text-primary">Gói Tập</label>
                                 <div class="input-group">
@@ -153,21 +152,36 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-3">
+                            <div class="col-md-6">
                                 <label class="form-label fw-bold text-warning">Huấn Luyện Viên</label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-white text-warning"><i class="fas fa-user-ninja"></i></span>
                                     {{ form.huanLuyenVien(class="form-select fw-bold text-warning") }}
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold text-success">Thanh Toán</label>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-danger">Số Tiền Trả Trước (VNĐ)</label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-white text-success"><i class="fas fa-money-bill-wave"></i></span>
+                                    <span class="input-group-text bg-white text-danger"><i class="fas fa-coins"></i></span>
+                                    {{ form.soTien(class="form-control fw-bold", placeholder="Nhập số tiền ") }}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-success">Phương Thức Thanh Toán</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white text-success"><i class="fas fa-credit-card"></i></span>
                                     {{ form.phuongThuc(class="form-select fw-bold text-success") }}
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="form-text text-muted mt-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Nếu khách trả góp, vui lòng nhập số tiền khách đóng. Nếu khách trả hết toàn bộ, hãy để trống ô "Số Tiền Trả Trước".
                         </div>
                     </div>
 

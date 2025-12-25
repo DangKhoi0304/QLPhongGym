@@ -168,7 +168,6 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    // 1. Cấu hình Lịch
     const fp = flatpickr("#datepicker", {
         mode: "multiple",
         dateFormat: "d-m-Y",
@@ -177,7 +176,6 @@
         disableMobile: "true"
     });
 
-    // 2. LOGIC XỬ LÝ NHÓM CƠ
     const exerciseMap = {{ data_map | tojson }};
     const inputBaiTap = document.getElementById('input_bai_tap');
     const inputNhomCo = document.getElementById('input_nhom_co');
@@ -212,7 +210,6 @@
     inputBaiTap.addEventListener('input', checkBaiTap);
     inputBaiTap.addEventListener('change', checkBaiTap);
 
-    // 3. HÀM KIỂM TRA TRƯỚC KHI LƯU (VALIDATION)
     function validateForm() {
         let isValid = true;
 

@@ -4,7 +4,6 @@ nav, .navbar {
         border-bottom: none !important;
     }
 
-    /* Chữ trên menu chuyển sang màu trắng */
     nav a, .navbar a, .navbar-brand, .nav-link {
         color: #ffffff !important;
         opacity: 0.9;

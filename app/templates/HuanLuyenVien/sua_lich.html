@@ -3,6 +3,8 @@
 {% block title %}Sửa Bài Tập{% endblock %}
 
 {% block content %}
+<script src="{{ url_for('static', filename='js/sualich.js') }}?v=2"></script>
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/material_orange.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -72,68 +74,5 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
 
-<script>
-    // 1. LẤY DỮ LIỆU NGÀY CŨ TỪ PYTHON
-    // Python gửi sang: "22-12-2025,24-12-2025" hoặc "None"
-    const rawDateStr = "{{ form.ngayTap.data }}";
 
-    let defaultDates = [];
-    if (rawDateStr && rawDateStr !== "None" && rawDateStr !== "") {
-        // Tách chuỗi bằng dấu phẩy và xóa khoảng trắng thừa
-        defaultDates = rawDateStr.split(',').map(d => d.trim());
-    }
-
-    // 2. CẤU HÌNH LỊCH
-    flatpickr("#datepicker_edit", {
-        mode: "multiple",       // Cho phép chọn nhiều ngày
-        dateFormat: "d-m-Y",    // Định dạng ngày
-        locale: "vn",           // Tiếng Việt
-        minDate: "today",       // Không cho chọn quá khứ
-
-        // [QUAN TRỌNG] Load ngày cũ vào đây
-        defaultDate: defaultDates
-    });
-
-    // 3. LOGIC XỬ LÝ NHÓM CƠ (Giữ nguyên logic cũ)
-    const exerciseMap = {{ data_map | tojson }};
-    const inputBaiTap = document.getElementById('input_bai_tap');
-    const inputNhomCo = document.getElementById('input_nhom_co');
-    const msgStatus = document.getElementById('msg_status');
-
-    function checkBaiTap() {
-        const tenBai = inputBaiTap.value;
-        if (exerciseMap && exerciseMap[tenBai]) {
-            inputNhomCo.value = exerciseMap[tenBai];
-            inputNhomCo.readOnly = true;
-            inputNhomCo.classList.add('bg-light');
-            inputNhomCo.classList.remove('bg-white');
-            msgStatus.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>Đã lấy từ dữ liệu hệ thống.';
-            msgStatus.className = "mt-1 small text-success";
-        } else {
-            if (tenBai.trim() !== "") {
-                inputNhomCo.readOnly = false;
-                inputNhomCo.classList.remove('bg-light');
-                inputNhomCo.classList.add('bg-white');
-                msgStatus.innerHTML = '<i class="fas fa-pen text-warning me-1"></i>Vui lòng tự nhập nhóm cơ.';
-                msgStatus.className = "mt-1 small text-warning fw-bold";
-            } else {
-                inputNhomCo.value = "";
-                inputNhomCo.readOnly = true;
-                msgStatus.innerHTML = "";
-            }
-        }
-    }
-
-    inputBaiTap.addEventListener('input', checkBaiTap);
-    inputBaiTap.addEventListener('change', checkBaiTap);
-
-    // Chạy 1 lần khi vào trang để kiểm tra trạng thái ban đầu
-    document.addEventListener("DOMContentLoaded", function() {
-        checkBaiTap();
-        // Giữ lại nhóm cơ cũ nếu là bài tự nhập (vì checkBaiTap có thể xóa nó đi)
-        if (!inputNhomCo.readOnly && inputNhomCo.value === "") {
-             inputNhomCo.value = "{{ lich.nhom_co }}";
-        }
-    });
-</script>
 {% endblock %}

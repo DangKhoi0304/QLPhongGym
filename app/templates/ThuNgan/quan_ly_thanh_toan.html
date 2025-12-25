@@ -1,19 +1,19 @@
 {% extends "layout/base.html" %}
 
 {% block content %}
+<script src="{{ url_for('static', filename='js/main.js') }}?v=2"></script>
 <style>
-    /* Thanh tìm kiếm hiện đại */
     .search-container {
-        max-width: 600px; /* Giới hạn chiều rộng để không quá to */
+        max-width: 600px;
         margin: 0 auto;
         position: relative;
     }
 
     .modern-search-bar {
         background: white;
-        border-radius: 50px; /* Bo tròn hoàn toàn */
+        border-radius: 50px;/
         padding: 5px 5px 5px 25px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* Đổ bóng nhẹ */
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         border: 1px solid rgba(0,0,0,0.05);
         transition: all 0.3s ease;
         display: flex;
@@ -45,7 +45,6 @@
         transform: scale(1.05);
     }
 
-    /* Bảng danh sách - Làm to và thoáng hơn */
     .card-list {
         border: none;
         border-radius: 20px;
@@ -64,31 +63,30 @@
     }
 
     .custom-table tbody td {
-        padding: 1.5rem 1rem; /* Tăng khoảng cách các dòng cho thoáng */
+        padding: 1.5rem 1rem;
         vertical-align: middle;
         border-bottom: 1px solid #f2f4f8;
         transition: background-color 0.2s;
     }
 
     .custom-table tbody tr:hover {
-        background-color: #fcfdff; /* Màu nền nhẹ khi hover */
+        background-color: #fcfdff;
     }
 
     .custom-table tbody tr:last-child td {
         border-bottom: none;
     }
 
-    /* Avatar và Text */
     .member-avatar {
-        width: 60px; /* Avatar to hơn */
+        width: 60px;
         height: 60px;
         object-fit: cover;
-        border-radius: 18px; /* Bo góc avatar thay vì tròn hẳn nhìn hiện đại hơn */
+        border-radius: 18px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
     .member-name {
-        font-size: 1.1rem; /* Tên to hơn */
+        font-size: 1.1rem;
         font-weight: 700;
         color: #2c3e50;
         margin-bottom: 4px;
@@ -101,7 +99,6 @@
         display: inline-block;
     }
 
-    /* CSS MỚI CHO LỊCH SỬ */
     .history-table th { background-color: #eef2f7; font-size: 0.8rem; }
     .history-table td { font-size: 0.9rem; }
 </style>
@@ -377,85 +374,4 @@
     </div>
 </div>
 
-<script>
-    // --- 1. Logic cho nút Gia hạn / Đăng ký mới ---
-    function setupPayment(userId, userName) {
-        // Điền ID vào hidden field trong form Gia hạn (form.user_id)
-        // Lưu ý: ID của trường này do WTForms sinh ra thường là 'user_id'
-        // hoặc id ta gán thủ công 'user_id_field' ở trên.
-        const idField = document.getElementById('user_id_field') || document.getElementById('user_id');
-        if(idField) {
-            idField.value = userId;
-        }
-        document.getElementById('payUserName').innerText = userName;
-    }
-
-    // --- 2. Logic cho nút Trả Nợ ---
-    let currentDebt = 0; // Biến toàn cục lưu số nợ hiện tại
-
-    function setupDebt(dangKyGoiTap_id, userName, debtAmount) {
-        // Điền tên và số nợ hiển thị
-        document.getElementById('debtUserName').innerText = userName;
-        document.getElementById('debtAmountDisplay').innerText = debtAmount.toLocaleString();
-
-        // Điền ID đăng ký vào Hidden Field của form Debt
-        // Tên field trong form_no là 'dangKyId'
-        const hiddenInput = document.querySelector('input[name="dangKyGoiTap_id"]');
-        if(hiddenInput) {
-            hiddenInput.value = dangKyGoiTap_id;
-        }
-
-        // Lưu nợ vào biến để dùng nút "Điền toàn bộ"
-        currentDebt = debtAmount;
-        // Reset ô nhập
-        document.getElementById('inputDebtAmount').value = '';
-    }
-
-    function fillFullDebt() {
-        document.getElementById('inputDebtAmount').value = currentDebt;
-    }
-
-    // --- 3. Logic cho nút Lịch sử (AJAX/Fetch) ---
-    function viewHistory(userId, userName) {
-        // Hiển thị Modal và tên user
-        document.getElementById('histUserName').innerText = userName;
-        const myModal = new bootstrap.Modal(document.getElementById('modalHistory'));
-        myModal.show();
-
-        // Reset bảng và hiện loading
-        const tbody = document.getElementById('historyTableBody');
-        tbody.innerHTML = '';
-        document.getElementById('loadingHist').classList.remove('d-none');
-        document.getElementById('emptyHist').classList.add('d-none');
-
-        // Gọi API lấy dữ liệu
-        fetch(`/api/payment-history/${userId}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('loadingHist').classList.add('d-none');
-
-                if (data.length === 0) {
-                    document.getElementById('emptyHist').classList.remove('d-none');
-                } else {
-                    // Render dữ liệu ra bảng
-                    data.forEach(item => {
-                        const row = `
-                            <tr>
-                                <td class="ps-4 fw-bold text-secondary">${item.ngay}</td>
-                                <td><span class="badge bg-info text-dark">${item.goi || 'N/A'}</span></td>
-                                <td>${item.phuong_thuc}</td>
-                                <td class="text-end pe-4 fw-bold text-success">${item.tien} đ</td>
-                            </tr>
-                        `;
-                        tbody.innerHTML += row;
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Lỗi tải dữ liệu!</td></tr>';
-                document.getElementById('loadingHist').classList.add('d-none');
-            });
-    }
-</script>
 {% endblock %}

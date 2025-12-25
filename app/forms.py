@@ -52,6 +52,7 @@ class RegisterFormStaff(FlaskForm):
         coerce=int,
         validators=[DataRequired()]
     )
+    soTien = IntegerField('Số tiền thanh toán', validators=[Optional(), NumberRange(min=0)])
     huanLuyenVien = SelectField('Huấn Luyện Viên',coerce=int, validators=[Optional()] )
     submit = SubmitField('Đăng ký hội viên')
 
@@ -73,7 +74,6 @@ class ThanhToanNoForm(FlaskForm):
     submit = SubmitField('Thu Tiền')
 
 class StaffRegisterForm(RegisterForm):
-    # kế thừa các trường trên, thêm chọn role
     role = SelectField('Vai trò', choices=[
         ('NGUOIQUANTRI', 'NGUOIQUANTRI'),
         ('THUNGAN', 'THUNGAN'),
@@ -91,7 +91,6 @@ class TaoLichTapForm(FlaskForm):
     submit = SubmitField('Tạo lịch tập')
 
 class ChonHLVForm(FlaskForm):
-    # Dùng HiddenField để gửi ID của HLV khi user nhấn nút chọn
     hlv_id = HiddenField('Mã HLV', validators=[DataRequired()])
     submit = SubmitField('Chọn HLV này')
 

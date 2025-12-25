@@ -5,11 +5,9 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-{# Logic xác định role name: Lấy từ NhanVienProfile #}
 {% set role_name = current_user.NhanVienProfile.vaiTro.name if current_user.NhanVienProfile else '' %}
 
 <style>
-    /* --- CSS CỐT LÕI (GIỮ NGUYÊN) --- */
     .staff-page {
         background-color: #f3f4f6;
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -34,7 +32,6 @@
         margin: 0 auto;
     }
 
-    /* --- PHẦN HEADER CHÀO MỪNG (Banner Tím) --- */
     .welcome-section {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
@@ -70,7 +67,6 @@
         backdrop-filter: blur(5px);
     }
 
-    /* --- CÁC NÚT CHỨC NĂNG (Action Cards) --- */
     .action-card {
         display: flex;
         flex-direction: column;
@@ -152,7 +148,6 @@
       <div class="p-5">
         <div class="row g-4 justify-content-center">
 
-            {# --- GIAO DIỆN LỄ TÂN --- #}
            {% if role_name == 'LETAN' %}
             <div class="col-md-6">
                 <a href='/dangky/nhanvien' class="action-card">
@@ -165,7 +160,6 @@
             </div>
             {% endif %}
 
-            {# --- GIAO DIỆN THU NGÂN --- #}
             {% if role_name == 'THUNGAN' %}
             <div class="col-md-6">
                 <a href="/thu-ngan/quan-ly-thanh-toan" class="action-card">
@@ -187,7 +181,6 @@
             </div>
             {% endif %}
 
-            {# --- GIAO DIỆN HUẤN LUYỆN VIÊN (MỚI THÊM) --- #}
             {% if role_name == 'HUANLUYENVIEN' %}
             <div class="col-md-6">
                 <a href="{{ url_for('danh_sach_hoi_vien') }}" class="action-card">
@@ -201,7 +194,6 @@
             {% endif %}
 
 
-            {# --- TRƯỜNG HỢP CHƯA PHÂN QUYỀN --- #}
             {% if role_name not in ['LETAN', 'THUNGAN', 'HUANLUYENVIEN'] %}
             <div class="col-12">
                 <div class="alert alert-info alert-custom text-center py-5">

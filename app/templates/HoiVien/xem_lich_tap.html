@@ -3,9 +3,11 @@
 {% block title %}Lịch Tập Của Tôi{% endblock %}
 
 {% block content %}
+<script src="{{ url_for('static', filename='js/xemlichtap.js') }}?v=2"></script>
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
-    /* Card HLV đẹp hơn */
+
     .hlv-card {
         background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
         transition: transform 0.3s ease;
@@ -14,7 +16,6 @@
         transform: translateY(-5px);
     }
 
-    /* Style cho Accordion (Danh sách tuần) */
     .accordion-button:not(.collapsed) {
         background-color: #e7f1ff;
         color: #0d6efd;
@@ -25,7 +26,6 @@
         border-color: rgba(0,0,0,.125);
     }
 
-    /* Style cho thẻ ngày tập */
     .day-card {
         border-left: 4px solid #0d6efd;
         background-color: #fff;
@@ -119,165 +119,16 @@
 </div>
 
 <script>
-    // Chuyển đổi dữ liệu Jinja sang mảng JS
-    const rawSchedule = [
+      const rawSchedule = [
         {% for item in schedule %}
         {
             baiTap: "{{ item.baiTap }}",
             nhomCo: "{{ item.nhom_co }}",
             soHiep: "{{ item.soHiep }}",
             soLan: "{{ item.soLan }}",
-            ngayTapStr: "{{ item.ngayTap }}" // Chuỗi: "Thứ 2 (22/12/2025), Thứ 4..."
+            ngayTapStr: "{{ item.ngayTap }}"
         },
         {% endfor %}
     ];
 </script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const accordionContainer = document.getElementById('scheduleAccordion');
-        const loadingState = document.getElementById('loadingState');
-
-        if (!accordionContainer || rawSchedule.length === 0) return;
-
-        // 1. Cấu trúc dữ liệu mục tiêu:
-        // organizedData = {
-        //    "Năm 2025 - Tuần 52": {
-        //        "22/12/2025 (Thứ 2)": [ {baiTap...}, {baiTap...} ]
-        //    }
-        // }
-        const organizedData = {};
-
-        // Helper: Lấy số tuần ISO
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-            return { year: d.getUTCFullYear(), week: weekNo };
-        }
-
-        // 2. Xử lý dữ liệu
-        rawSchedule.forEach(item => {
-            // Tách chuỗi ngày: "Thứ 2 (22/12/2025), Thứ 4 (24/12/2025)"
-            // Dùng Regex tìm các cụm ngày tháng năm dd/mm/yyyy
-            const dates = item.ngayTapStr.match(/\d{2}\/\d{2}\/\d{4}/g);
-
-            if (dates) {
-                dates.forEach(dateStr => {
-                    // dateStr = "22/12/2025"
-                    const parts = dateStr.split('/');
-                    const day = parseInt(parts[0], 10);
-                    const month = parseInt(parts[1], 10) - 1;
-                    const year = parseInt(parts[2], 10);
-
-                    const dateObj = new Date(year, month, day);
-                    const weekInfo = getWeekNumber(dateObj);
-
-                    // Tạo key cho Tuần: "Tuần 52 - Năm 2025"
-                    const weekKey = `Tuần ${weekInfo.week} - Năm ${weekInfo.year}`;
-
-                    // Tạo key cho Ngày: "Thứ X - 22/12/2025"
-                    const daysMap = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-                    const dayKey = `${daysMap[dateObj.getDay()]} (${dateStr})`;
-
-                    // Khởi tạo object nếu chưa có
-                    if (!organizedData[weekKey]) organizedData[weekKey] = {};
-                    if (!organizedData[weekKey][dayKey]) organizedData[weekKey][dayKey] = [];
-
-                    // Thêm bài tập vào ngày đó
-                    organizedData[weekKey][dayKey].push(item);
-                });
-            }
-        });
-
-        // 3. Render ra HTML
-        loadingState.style.display = 'none';
-
-        // Sắp xếp tuần (Mới nhất lên đầu hoặc ngược lại tùy bạn)
-        // Ở đây mình sort string key đơn giản
-        const sortedWeeks = Object.keys(organizedData).sort((a, b) => {
-             // Extract week and year numbers for correct sorting
-             const matchA = a.match(/Tuần (\d+) - Năm (\d+)/);
-             const matchB = b.match(/Tuần (\d+) - Năm (\d+)/);
-             if (matchA && matchB) {
-                 if (matchA[2] !== matchB[2]) return matchA[2] - matchB[2]; // Sort year
-                 return matchA[1] - matchB[1]; // Sort week
-             }
-             return 0;
-        });
-
-        if (sortedWeeks.length === 0) {
-            accordionContainer.innerHTML = '<div class="text-center p-3">Không phân tích được dữ liệu ngày tháng.</div>';
-            return;
-        }
-
-        sortedWeeks.forEach((weekKey, index) => {
-            const collapseId = `collapse${index}`;
-            const headerId = `heading${index}`;
-            // Mặc định mở tuần đầu tiên (index === 0)
-            const showClass = index === sortedWeeks.length - 1 ? 'show' : ''; // Mở tuần cuối cùng (tuần mới nhất)
-            const btnCollapsed = index === sortedWeeks.length - 1 ? '' : 'collapsed';
-
-            let weekHtml = `
-                <div class="accordion-item border-0 mb-3 shadow-sm rounded overflow-hidden">
-                    <h2 class="accordion-header" id="${headerId}">
-                        <button class="accordion-button ${btnCollapsed}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
-                            <i class="bi bi-calendar-check me-2"></i> ${weekKey}
-                        </button>
-                    </h2>
-                    <div id="${collapseId}" class="accordion-collapse collapse ${showClass}" data-bs-parent="#scheduleAccordion">
-                        <div class="accordion-body bg-light">
-            `;
-
-            // Sort ngày trong tuần
-            const daysInWeek = organizedData[weekKey];
-            const sortedDays = Object.keys(daysInWeek).sort((a, b) => {
-                // a = "Thứ 2 (22/12/2025)" -> Lấy phần ngày tháng để so sánh
-                const getTs = (s) => {
-                    const dParts = s.match(/\d{2}\/\d{2}\/\d{4}/)[0].split('/');
-                    return new Date(dParts[2], dParts[1]-1, dParts[0]).getTime();
-                };
-                return getTs(a) - getTs(b);
-            });
-
-            sortedDays.forEach(dayKey => {
-                const exercises = daysInWeek[dayKey];
-                weekHtml += `
-                    <div class="day-card rounded">
-                        <div class="day-header rounded-top d-flex justify-content-between">
-                            <span>${dayKey}</span>
-                            <span class="badge bg-primary rounded-pill">${exercises.length} bài</span>
-                        </div>
-                        <div class="p-0">
-                `;
-
-                exercises.forEach(ex => {
-                    weekHtml += `
-                        <div class="exercise-item d-flex justify-content-between align-items-center bg-white">
-                            <div>
-                                <div class="fw-bold text-dark">${ex.baiTap}</div>
-                                <div class="small text-muted"><i class="bi bi-tag me-1"></i>${ex.nhomCo}</div>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-light text-dark border me-1">Hiệp: ${ex.soHiep}</span>
-                                <span class="badge bg-light text-dark border">Lần: ${ex.soLan}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-
-                weekHtml += `</div></div>`; // End day-card
-            });
-
-            weekHtml += `
-                        </div>
-                    </div>
-                </div>
-            `;
-            accordionContainer.innerHTML += weekHtml;
-        });
-    });
-</script>
-
 {% endblock %}
